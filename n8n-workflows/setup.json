@@ -1,0 +1,715 @@
+{
+  "name": "setup-slash-command",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "7d18c7c7-607b-45fd-bd32-c8795ad7da78",
+      "name": "Listen For Setup Command",
+      "webhookId": ""
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"response_type\": \"ephemereal\",\n  \"text\": \"Setup may take a few seconds. Thank you.\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        224,
+        0
+      ],
+      "id": "d420d571-90fd-45e9-b82e-5c3f27567e61",
+      "name": "Ephemereal Response"
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $json.body.channel_id }}",
+          "mode": "id"
+        },
+        "message": "Fill in this form to setup a project in your channel for automated ticket creation.",
+        "responseType": "customForm",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Project URL",
+              "placeholder": "The URL you see when on the main project screen.",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Repository URL",
+              "placeholder": "The URL you see when on the main repository screen.",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {
+          "messageButtonLabel": "Setup Project",
+          "limitWaitTime": {
+            "values": {
+              "resumeAmount": 60,
+              "resumeUnit": "minutes"
+            }
+          },
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.7,
+      "position": [
+        448,
+        0
+      ],
+      "id": "635d0c35-fe4a-4b7e-885f-f38577c29eab",
+      "name": "Send Setup Form and Wait",
+      "webhookId": "189decf4-a006-4108-9b9c-233600da8ba0",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "jsCode": "const projectUrl = $input.first().json.data?.['Project URL'] || '';\nconst repoUrl = $input.first().json.data?.['Repository URL'] || '';\n\nconst match = projectUrl.match(/\\/users\\/([^/]+)\\/projects\\/(\\d+)/);\nconst repoName = repoUrl.split('/').filter(Boolean).pop();\n\nreturn {\n  username: match ? match[1] : null,\n  projectNumber: match ? Number(match[2]) : null,\n  repoName: repoName || null\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        0
+      ],
+      "id": "5c9efc33-2df4-4d4b-a12d-a84707f3e5ed",
+      "name": "Extract Data From Form"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.github.com/graphql",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "huddle-ticket-automation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "=json",
+        "bodyParameters": {
+          "parameters": [
+            {}
+          ]
+        },
+        "jsonBody": "={{\n  {\n    query: \"query($login: String!, $number: Int!) { user(login: $login) { projectV2(number: $number) { id title viewerCanUpdate } } }\",\n    variables: {\n      login: $json.username,\n      number: Number($json.projectNumber)\n    }\n  }\n}}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        896,
+        0
+      ],
+      "id": "e1233dc7-6c0f-488e-b8a2-0d5221061e4a",
+      "name": "Check Project Visible",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "url": "=https://api.github.com/repos/{{ $('Extract Data From Form').first().json.username }}/{{ $('Extract Data From Form').first().json.repoName }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1376,
+        -144
+      ],
+      "id": "0dce4bbf-6e88-454c-88e8-2e0594f460a3",
+      "name": "Check Repo Visible",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "url": "=https://api.github.com/user/repository_invitations?per_page=100",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1856,
+        -288
+      ],
+      "id": "dc9dade8-9a03-4d7c-be90-ca8cf778410b",
+      "name": "Check For Repo Invitation",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://api.github.com/user/repository_invitations/{{ $json.id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        2592,
+        -528
+      ],
+      "id": "84984174-b9bb-4f33-9536-2b68a9e5094c",
+      "name": "Accept Repo Invitation",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "b759599a-9b94-438e-b569-40bf6eefc17b",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        2320,
+        -288
+      ],
+      "id": "15a77a47-af25-48db-b9cd-1df6d8d9f7da",
+      "name": "Repo Invitation Exists"
+    },
+    {
+      "parameters": {
+        "jsCode": "const targetRepo = $('Extract Data From Form').first().json.repoName?.trim().toLowerCase();\nconst targetUser = $('Extract Data From Form').first().json.username?.trim().toLowerCase();\n\nreturn $input.all().filter(item => {\n  const repoName = item.json.repository?.name?.trim().toLowerCase();\n  const ownerLogin = item.json.repository?.owner?.login?.trim().toLowerCase();\n\n  const repoMatches = repoName === targetRepo;\n  const userMatches = !targetUser || ownerLogin === targetUser;\n\n  return repoMatches && userMatches;\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2096,
+        -288
+      ],
+      "id": "42005f79-8721-4885-aad3-f30d5ef49ccb",
+      "name": "Find Repo Invitation",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "f0efece6-c82d-4288-a677-e1a359fdd918",
+              "leftValue": "={{ $json.data.user.projectV2.viewerCanUpdate }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "581dac16-2373-4884-a404-5bcf14f09b01",
+              "leftValue": "={{ $json.data.user.projectV2.viewerCanUpdate }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        1120,
+        0
+      ],
+      "id": "70fba81c-fa09-47bd-a860-d1ff759cc8eb",
+      "name": "Bot Can Write to Project"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "8551b6b4-2685-4d5a-8f68-97d52e4dcb5b",
+              "leftValue": "={{ $json.statusCode }}",
+              "rightValue": 404,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        1600,
+        -144
+      ],
+      "id": "948ff942-83f2-4896-9b7e-84b09160c2d3",
+      "name": "Returns 404"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "a365cc04-9a78-47cf-86b6-76ab9d1c5554",
+              "leftValue": "={{ $json.statusCode }}",
+              "rightValue": 200,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        1856,
+        -32
+      ],
+      "id": "1d09135d-2cc2-4018-9340-53aaa536874f",
+      "name": "Returns 200"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $('Listen For Setup Command').item.json.body.channel_id }}",
+          "mode": "id"
+        },
+        "text": "Something went wrong. Please try again later.",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.7,
+      "position": [
+        2080,
+        64
+      ],
+      "id": "77e3ae6b-5b6f-4166-804e-74f2b40c91f6",
+      "name": "Inform User of Unknown Error",
+      "webhookId": "49e154e0-a229-4a35-a08f-85a2ce6b7cb9",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $('Listen For Setup Command').item.json.body.channel_id }}",
+          "mode": "id"
+        },
+        "text": "Setup failed. Make sure the bot account has access to your project.",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.7,
+      "position": [
+        1376,
+        128
+      ],
+      "id": "6f3b1ae6-dfa9-4bf9-a4eb-1523802eceaa",
+      "name": "Ask User to Add to Project",
+      "webhookId": "e7f45974-d70a-45f4-ad38-eeda66c311ac",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $('Listen For Setup Command').item.json.body.channel_id }}",
+          "mode": "id"
+        },
+        "text": "Setup failed. Make sure the bot account has been invited to your repo.",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.7,
+      "position": [
+        2592,
+        -192
+      ],
+      "id": "b341aa03-4016-4f98-a74a-650e4aec80d0",
+      "name": "Ask User to Invite to Repo",
+      "webhookId": "a398dbbe-064c-4d4a-9301-36d44d10a46d",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "value": "RC7Jh98wZeWHFaRB",
+          "mode": "list",
+          "cachedResultName": "slack_channel_project_link",
+          "cachedResultUrl": "/projects/ATCAm8uKRqpX8N06/datatables/RC7Jh98wZeWHFaRB"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "channel_id",
+              "keyValue": "={{ $('Listen For Setup Command').item.json.body.channel_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "channel_id": "={{ $('Listen For Setup Command').item.json.body.channel_id }}",
+            "project_id": "={{ $('Check Project Visible').item.json.data.user.projectV2.id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "channel_id",
+              "displayName": "channel_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "project_id",
+              "displayName": "project_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        2864,
+        -48
+      ],
+      "id": "9fb8d9c6-66f3-4d9c-99ed-09b459d28d05",
+      "name": "Upsert row(s)"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $('Listen For Setup Command').item.json.body.channel_id }}",
+          "mode": "id"
+        },
+        "text": "Setup completed successfully. You may now create automated GitHub project tickets by either using the /meetingsummary command and posting a written summary or switching AI notes on in your huddle, and when it ends, tickets are generated automatically from an AI summary of your meeting.",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.7,
+      "position": [
+        3072,
+        -48
+      ],
+      "id": "d73c0091-fe99-4d9a-8411-58ebfff9bb37",
+      "name": "Send a message",
+      "webhookId": "471a668d-996b-4646-b0f4-d291d6ac52cc",
+      "credentials": {}
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Listen For Setup Command": {
+      "main": [
+        [
+          {
+            "node": "Ephemereal Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ephemereal Response": {
+      "main": [
+        [
+          {
+            "node": "Send Setup Form and Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Setup Form and Wait": {
+      "main": [
+        [
+          {
+            "node": "Extract Data From Form",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Data From Form": {
+      "main": [
+        [
+          {
+            "node": "Check Project Visible",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Project Visible": {
+      "main": [
+        [
+          {
+            "node": "Bot Can Write to Project",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Repo Visible": {
+      "main": [
+        [
+          {
+            "node": "Returns 404",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check For Repo Invitation": {
+      "main": [
+        [
+          {
+            "node": "Find Repo Invitation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Accept Repo Invitation": {
+      "main": [
+        [
+          {
+            "node": "Check Repo Visible",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Repo Invitation Exists": {
+      "main": [
+        [
+          {
+            "node": "Accept Repo Invitation",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ask User to Invite to Repo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Repo Invitation": {
+      "main": [
+        [
+          {
+            "node": "Repo Invitation Exists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bot Can Write to Project": {
+      "main": [
+        [
+          {
+            "node": "Check Repo Visible",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ask User to Add to Project",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Returns 404": {
+      "main": [
+        [
+          {
+            "node": "Check For Repo Invitation",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Returns 200",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Returns 200": {
+      "main": [
+        [
+          {
+            "node": "Upsert row(s)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Inform User of Unknown Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert row(s)": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "355aaa22-0cd1-40c2-a08f-4e7dfdbeb9fd",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "0b3178866478233b39ccab85cc4a6c6bdfb86963810969ae561a567c52042c3a"
+  },
+  "nodeGroups": [],
+  "id": "S5V53caZ6gg9MlH6",
+  "tags": []
+}

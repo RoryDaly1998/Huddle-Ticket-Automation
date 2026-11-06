@@ -1,0 +1,57 @@
+{
+    "display_information": {
+        "name": "Huddle Ticket Automation",
+        "description": "Turns huddle summaries into draft GitHub project tickets.",
+        "long_description": "When a huddle summary is posted automatically by slack this bot reads the summary, creates tickets and adds them to a pre-configured GitHub project as draft issues. It requires AI notes to be turned on in the huddle and for a GitHub project to be linked in the n8n automation.",
+        "background_color": "#9C5A13"
+    },
+    "features": {
+        "bot_user": {
+            "display_name": "Huddle Ticket Automation",
+            "always_online": true
+        },
+        "slash_commands": [
+            {
+                "command": "/meetingsummary",
+                "description": "Create Tickets from Meeting Summary",
+                "should_escape": false,
+                "url": "",
+                "usage_hint": "[your meeting summary]"
+            },
+            {
+                "command": "/setup",
+                "description": "Setup a project in your channel.",
+                "should_escape": false,
+                "url": ""
+            }
+        ]
+    },
+    "oauth_config": {
+        "scopes": {
+            "bot": [
+                "canvases:read",
+                "channels:history",
+                "channels:read",
+                "chat:write",
+                "files:read",
+                "groups:history",
+                "groups:read",
+                "commands"
+            ]
+        },
+        "pkce_enabled": false
+    },
+    "settings": {
+        "event_subscriptions": {
+            "bot_events": [
+                "file_shared"
+            ],
+            "request_url": ""
+        },
+        "org_deploy_enabled": false,
+        "socket_mode_enabled": false,
+        "is_mcp_enabled": false,
+        "token_rotation_enabled": false,
+        "app_level_token_rotation_enabled": false
+    }
+}

@@ -1,0 +1,288 @@
+{
+  "name": "c26-transcription-ticket-automation-error-handler",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "143f7afd-b0e0-4d0b-a8de-d56f25eff1b9",
+      "name": "Error Trigger"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1200,
+        0
+      ],
+      "id": "179aea6c-f33e-469b-b6a4-8c3444a775aa",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $json.channel }}",
+          "mode": "id"
+        },
+        "text": "=The automated ticket workflow failed (<{{ $json.executionUrl }}|View Run>) with this error:\n\n{{ $json.errorMessage }}",
+        "otherOptions": {
+          "thread_ts": {
+            "replyValues": {
+              "thread_ts": "={{ $json.thread_ts }}"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.7,
+      "position": [
+        944,
+        -112
+      ],
+      "id": "0fca5be7-f3b7-465f-9057-674da69f7da6",
+      "name": "Send Slack Message to Thread",
+      "webhookId": "b122f7dc-038c-4d03-99d4-ac77d19617b0",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $json.channel }}",
+          "mode": "id"
+        },
+        "text": "=An automated transcription workflow failed (<{{ $json.executionUrl }}|View Run>) with this error:\n\n{{ $json.errorMessage }}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.7,
+      "position": [
+        944,
+        112
+      ],
+      "id": "bab5b1c3-d52f-4e9d-b610-b5df4cfb877c",
+      "name": "Send Slack Message to Channel",
+      "webhookId": "b122f7dc-038c-4d03-99d4-ac77d19617b0",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "079b1837-2b46-4048-a2e9-30826fd89972",
+              "leftValue": "={{ $json.canReplyToThread }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        688,
+        0
+      ],
+      "id": "5674544c-adfe-4932-954e-38a8d9cacfc8",
+      "name": "Thread Timestamp Present"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json;\nconst runData = raw.data?.resultData?.runData || raw.resultData?.runData || {};\n\n// Target node from the parent workflow\nconst nodeRuns = runData['Get Upload Message Timestamp'];\nconst nodeOutput = nodeRuns?.[0]?.data?.main?.[0]?.[0]?.json;\n\nconst channel = nodeOutput?.channel || null;\nconst threadTs = nodeOutput?.thread_ts || null;\n\n// Error & workflow metadata from the Error Trigger node\nconst errorContext = $('Error Trigger').item?.json || {};\nconst failedNode = errorContext.execution?.lastNodeExecuted || \"Unknown Node\";\nconst errorMsg = errorContext.execution?.error?.message || \"An unexpected error occurred.\";\nconst workflowName = errorContext.workflow?.name || \"Main Pipeline\";\nconst workflowId = errorContext.workflow?.id || raw.data?.workflowId || \"\";\nconst executionId = errorContext.execution?.id || \"\";\n\n// Build direct links\nconst instanceBase = \"\";\nconst workflowUrl = `${instanceBase}/workflow/${workflowId}`;\nconst executionUrl = `${instanceBase}/workflow/${workflowId}/executions/${executionId}`;\n\nif (channel && threadTs) {\n  return [{\n    json: {\n      canReplyToThread: true,\n      channel,\n      thread_ts: threadTs,\n      failedNode,\n      errorMessage: errorMsg,\n      workflowName,\n      workflowUrl,\n      executionUrl\n    }\n  }];\n}\n\n// Fallback if the workflow failed before generating the timestamp\nreturn [{\n  json: {\n    canReplyToThread: false,\n    failedNode,\n    errorMessage: errorMsg,\n    workflowName,\n    workflowUrl,\n    executionUrl,\n    reason: \"Get Upload Message Timestamp was not executed prior to failure.\"\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ],
+      "id": "b9e07919-c656-4bb5-984f-0da95e045123",
+      "name": "Check If Thread Is Known"
+    },
+    {
+      "parameters": {
+        "url": "",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "n8nApi",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        224,
+        0
+      ],
+      "id": "8116573b-501f-4c2f-ad4f-22e25098d203",
+      "name": "Get Full Error Details",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "jsCode": "const rawText = $input.first().json.message?.text || '';\n\n// Extract URLs and error text\nconst execUrlMatch = rawText.match(/<(https:\\/\\/[^|>]+)\\|View Run>/i);\nconst wfUrlMatch = rawText.match(/<(https:\\/\\/[^|>]+)\\|n8n workflow>/i);\nconst errorMatch = rawText.match(/with this error:\\s*([\\s\\S]*?)(?:\\s*_Automated|$)/i);\n\nconst executionUrl = execUrlMatch ? execUrlMatch[1] : \"\";\nconst workflowUrl = wfUrlMatch ? wfUrlMatch[1] : \"\";\nconst errorMessage = errorMatch ? errorMatch[1].trim() : \"Unknown error\";\n\nconst subject = \"Workflow Failed: Automated Transcription\";\n\nconst body = `An automated transcription workflow has failed.\n\nError:\n${errorMessage}\n\nView Run:\n${executionUrl}\n\nWorkflow:\n${workflowUrl}`;\n\nreturn [{\n  json: {\n    subject,\n    body\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        0
+      ],
+      "id": "b73ab19d-25eb-4412-81f9-94ede4a7b4e0",
+      "name": "Format Email Message"
+    },
+    {
+      "parameters": {
+        "sendTo": "",
+        "subject": "={{ $json.subject }}",
+        "message": "={{ $json.body }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1664,
+        0
+      ],
+      "id": "bd228041-41e2-43db-836b-ceff9d95b908",
+      "name": "Send Error Message",
+      "webhookId": "ed98757c-a3a6-4c77-8d3b-97f0f7bc3190",
+      "credentials": {}
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Full Error Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Format Email Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Slack Message to Thread": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Slack Message to Channel": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Thread Timestamp Present": {
+      "main": [
+        [
+          {
+            "node": "Send Slack Message to Thread",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Slack Message to Channel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check If Thread Is Known": {
+      "main": [
+        [
+          {
+            "node": "Thread Timestamp Present",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Full Error Details": {
+      "main": [
+        [
+          {
+            "node": "Check If Thread Is Known",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Email Message": {
+      "main": [
+        [
+          {
+            "node": "Send Error Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Error Message": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "d67bad32-5529-43f2-92d4-510e989f63d6",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "0b3178866478233b39ccab85cc4a6c6bdfb86963810969ae561a567c52042c3a"
+  },
+  "nodeGroups": [],
+  "id": "uvXNfvNSZXKkhDpp",
+  "tags": []
+}

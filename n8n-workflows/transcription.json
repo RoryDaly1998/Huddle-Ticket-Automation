@@ -1,0 +1,1059 @@
+{
+  "name": "c26-transcription-ticket-automation",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "DPzudG3e76PeFfbD",
+          "mode": "list",
+          "cachedResultName": "slack_channel_lock",
+          "cachedResultUrl": "/projects/ATCAm8uKRqpX8N06/datatables/DPzudG3e76PeFfbD"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "channel_id",
+              "keyValue": "={{ $json.channel_id }}"
+            }
+          ]
+        },
+        "orderBy": true,
+        "orderByColumn": "updatedAt"
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        784,
+        400
+      ],
+      "id": "85f99edb-dc64-4563-82d6-6bc3f649419a",
+      "name": "Get Previous File Upload to Channel",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "3ff7d2d5-7cba-45a7-9c69-8df317439465",
+              "leftValue": "={{ $json }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "empty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "eb0abc89-be7d-4afe-a650-2005a0424a4f",
+              "leftValue": "={{ parseFloat($('Listen for Transcript Upload').item.json.event_ts) - ($json.last_upload_ts / 1000) }}",
+              "rightValue": 10,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1008,
+        400
+      ],
+      "id": "625e2eba-6ddb-43b4-b49b-b5532baaa84a",
+      "name": "Check if File Sent Last 10 Seconds"
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "value": "DPzudG3e76PeFfbD",
+          "mode": "list",
+          "cachedResultName": "slack_channel_lock",
+          "cachedResultUrl": "/projects/ATCAm8uKRqpX8N06/datatables/DPzudG3e76PeFfbD"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "channel_id",
+              "keyValue": "={{ $('Listen for Transcript Upload').item.json.channel_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "last_upload_ts": "={{ Date.now() }}",
+            "channel_id": "={{ $('Listen for Transcript Upload').item.json.channel_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "channel_id",
+              "displayName": "channel_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "last_upload_ts",
+              "displayName": "last_upload_ts",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1232,
+        384
+      ],
+      "id": "466a9d79-86fd-44b3-84cc-171760f664be",
+      "name": "Upsert Record of File Upload"
+    },
+    {
+      "parameters": {
+        "trigger": [
+          "file_share"
+        ],
+        "watchWorkspace": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.slackTrigger",
+      "typeVersion": 1,
+      "position": [
+        336,
+        256
+      ],
+      "id": "f8f4abbd-8a46-4bd4-8b0f-2604a0357566",
+      "name": "Listen for Transcript Upload",
+      "webhookId": "",
+      "retryOnFail": true,
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const privateShares = $json?.shares?.private || {};\nconst publicShares = $json?.shares?.public || {};\n\nconst channel = Object.keys(privateShares)[0] || Object.keys(publicShares)[0] || null;\n\nconst message = channel ? (privateShares[channel]?.[0] || publicShares[channel]?.[0]) : null;\n\nreturn {\n  channel: channel,\n  thread_ts: message?.thread_ts || message?.ts || null\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1856,
+        384
+      ],
+      "id": "6f1ea28c-8d0c-4ff1-b847-77a06334b23b",
+      "name": "Get Upload Message Timestamp"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "get",
+        "fileId": "={{ $('Listen for Transcript Upload').item.json.file_id }}"
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.7,
+      "position": [
+        1632,
+        384
+      ],
+      "id": "54c075ab-5e12-4de6-8fcc-ab1727cada95",
+      "name": "Get Summary File",
+      "webhookId": "ad216095-922b-4a3a-b478-03f369b5a673",
+      "retryOnFail": true,
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://slack.com/api/canvases.getContent",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "slackApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "canvas_id",
+              "value": "={{ $('Listen for Transcript Upload').item.json.file.id }}"
+            },
+            {
+              "name": "content_type",
+              "value": "markdown"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        2112,
+        384
+      ],
+      "id": "019503fe-c8e6-45ee-a426-aec3e41569c3",
+      "name": "Get Summary Text",
+      "retryOnFail": true,
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.github.com/graphql",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "n8n"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\n  {\n    query: \"query($projectId: ID!) { node(id: $projectId) { ... on ProjectV2 { items(first: 100) { nodes { content { ... on Issue { title body } ... on DraftIssue { title body } ... on PullRequest { title body } } } } } } }\",\n    variables: {\n      projectId: $json.project_id\n    }\n  }\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        3424,
+        240
+      ],
+      "id": "368f4f0d-5683-4d2b-afbc-20aae439e3ba",
+      "name": "Get Existing Project Tickets",
+      "retryOnFail": true,
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.first().json.data.node.items.nodes;\n\nconst tickets = items\n  .filter(item => item.content?.title)\n  .map(item => {\n    const match = (item.content.body || '').match(/## Summary\\s*([^#]*)/);\n    return {\n      title: item.content.title,\n      summary: match ? match[1].trim() : ''\n    };\n  });\n\nreturn [{ json: { tickets } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3648,
+        240
+      ],
+      "id": "1bbb200f-41d4-4d5a-987a-4d764d72956b",
+      "name": "Extract Title and Summary"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-6-luna",
+          "mode": "list",
+          "cachedResultName": "gpt-6-luna"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        3952,
+        592
+      ],
+      "id": "b12b3ee6-ea00-4cf4-95c7-1d421a4f362f",
+      "name": "OpenAI Chat Model",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"issues\": {\n      \"type\": \"array\",\n      \"description\": \"List of distinct action items or tasks extracted from the meeting\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"title\": {\n            \"type\": \"string\",\n            \"description\": \"Crisp, concise title of the task\"\n          },\n          \"description\": {\n            \"type\": \"string\",\n            \"description\": \"Detailed description, starting with ## Summary: <one sentence>\"\n          }\n        },\n        \"required\": [\"title\", \"description\"]\n      }\n    }\n  },\n  \"required\": [\"issues\"]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        4128,
+        592
+      ],
+      "id": "2772a1e3-35b8-4a7b-93fd-d4d6dfa040bd",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Your function is to take a meeting summary as input and convert it into actionable tickets with the specified schema.\n\nFrom the full meeting summary text:\n\n{{ $('Merge').item.json.summary }}\n\nextract all next actions. Compare them against existing tickets for the project, these will be titles and short summaries of each existing ticket:\n\n{{ JSON.stringify($json.tickets) }}\n\nIf any next actions are similar to the exisiting tickets then disregard them. If you are unsure whether to disregard or not then keep the new ticket, they will be draft tickets so they will go through manual review anyway.\n\nFor each ticket include a concise, descriptive name and a ticket body. Each section of the body should be have a h2 markdown header and the name of the section. An example is '## Summary'.\n\nThe ticket description should have the following structure:\n\n\"\n## 1. Summary\nA concise and descriptive summary of the ticket, used for comparing tickets to each other for similarity.\n---\n## 2. Problem Statement * **User Story / Objective:** As a [type of user], I want to [perform an action] so that [reach a specific benefit]. * **Current Behavior:** What happens right now (or what gap exists)? * **Expected Behavior:** What should happen once this ticket is resolved?\n---\n## 3. Scope & Implementation Boundaries * **In Scope:** \u00a0\u00a0* Specific requirement A \u00a0\u00a0* Specific requirement B * **Out of Scope (Explicit Non-Goals):** \u00a0\u00a0* Things specifically deferred to future tickets to prevent scope creep.\n---\n## 4. Acceptance Criteria (Definition of Done) Use Gherkin format (Given-When-Then) or clear, verifiable checkboxes:  - [ ] **Scenario 1:** \u00a0\u00a0* **Given:** A user is logged in with an expired token \u00a0\u00a0* **When:** They click the \"Checkout\" button \u00a0\u00a0* **Then:** They receive a refresh prompt without losing their cart items - [ ] **Unit / Integration Tests:** Coverage added or updated for new logic. - [ ]\n---\n## 5. Verification & Testing Steps 1. Navigate to `[URL / Screen]`. 2. Perform `[Specific Action with sample input]`. 3. Verify that `[Observable Result]` occurs.[11:23 AM]\n\"\n\nUse this framework to check that the ticket is an effective one.\n\nThe Ticket Readiness Framework: INVEST Before writing the ticket content, evaluate whether the item is ready to be worked on:  I \u2013 Independent: Can this ticket be completed without being blocked by an in-progress sibling task? N \u2013 Negotiable: Does it specify the goal and boundaries rather than over-prescribing implementation trivia? V \u2013 Valuable: Does completing this deliver clear functional or technical value? E \u2013 Estimable / Clear: Is the path forward clear enough that an engineer or designer knows how long it will take? S \u2013 Small (Right-Sized): Can this be completed within 1 to 3 days? If it takes a full sprint, break it down. T \u2013 Testable: Are there explicit criteria to prove that the work works?\n\nNever make up details, infer them strictly from the meeting summary. If there are no actionable items in the summary then output an empty JSON array. If a section defined here cannot be filled from what is provided in the meeting summary then leave it as an empty string.",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": []
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        3968,
+        400
+      ],
+      "id": "2dc2040b-aa67-4088-9d92-effcf91e48b8",
+      "name": "Create Issues",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "output.issues",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1.1,
+      "position": [
+        4592,
+        416
+      ],
+      "id": "6b4465b1-6ab6-462f-807e-d9c6be2d1de1",
+      "name": "Split List Into Issues"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.github.com/graphql",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "n8n"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\n  {\n    query: \"mutation AddDraft($projectId: ID!, $title: String!, $body: String) { addProjectV2DraftIssue(input: { projectId: $projectId, title: $title, body: $body }) { projectItem { id } } }\",\n    variables: {\n      projectId: $('Project Assigned to Channel').item.json.project_id,\n      title: $json.title,\n      body: $json.description\n    }\n  }\n}}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        4816,
+        416
+      ],
+      "id": "21035e4f-5414-4799-9f9d-73df44a73471",
+      "name": "Add Issues to Project",
+      "retryOnFail": true,
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nlet successCount = 0;\nlet errorCount = 0;\n\nfor (const item of items) {\n  const json = item.json;\n  \n  // A GraphQL draft issue creation succeeded if it returned a projectItem ID and no errors\n  if (json.data?.addProjectV2DraftIssue?.projectItem?.id && (!json.errors || json.errors.length === 0)) {\n    successCount++;\n  } else {\n    errorCount++;\n  }\n}\n\nlet message = `Meeting transcript successfully analysed, ${successCount} tickets created.`;\n\nif (errorCount > 0) {\n  message += `\\n${errorCount} tickets encountered an error and could not be created.`;\n}\n\nreturn {\n  json: {\n    message\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5040,
+        416
+      ],
+      "id": "16297832-96e0-4c01-a062-f7f4537a3766",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $('Merge').item.json.channel_id }}",
+          "mode": "id"
+        },
+        "text": "=Transcription successfully analysed, no new tickets added.",
+        "otherOptions": {
+          "includeLinkToWorkflow": false,
+          "thread_ts": {
+            "replyValues": {
+              "thread_ts": "={{ $('Merge').item.json.thread_ts }}"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.7,
+      "position": [
+        4592,
+        240
+      ],
+      "id": "02b6eaac-8492-4a08-bf16-e7ce7ddc814b",
+      "name": "Send Confirmation No Issues Created",
+      "webhookId": "b122f7dc-038c-4d03-99d4-ac77d19617b0",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $('Merge').item.json.channel_id }}",
+          "mode": "id"
+        },
+        "text": "={{ $json.message }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false,
+          "thread_ts": {
+            "replyValues": {
+              "thread_ts": "={{ $('Merge').item.json.thread_ts }}"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.7,
+      "position": [
+        5280,
+        416
+      ],
+      "id": "e39c28e2-38c6-423a-981c-c5a66ab6a5ef",
+      "name": "Send Confirmation Issues Created",
+      "webhookId": "b122f7dc-038c-4d03-99d4-ac77d19617b0",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "2c6d3157-0ce9-4f91-92fd-50ace43003ee",
+              "leftValue": "={{ $json.user_id }}",
+              "rightValue": "=USLACKBOT",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        576,
+        416
+      ],
+      "id": "9d10174a-3dfd-48c4-afa3-e2578a90834a",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.2,
+      "position": [
+        1360,
+        -32
+      ],
+      "id": "bd8ab5d2-6c42-446b-98e2-d3ea0ec40006",
+      "name": "Webhook",
+      "webhookId": ""
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"response_type\": \"in_channel\",\n  \"text\": \"Your request is being processed.\",\n  \"thread_ts\": \"{{ $json.body.thread_ts || $json.body.ts }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1632,
+        96
+      ],
+      "id": "f1e229d8-7508-445e-8234-882709982406",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "return {\n  'channel_id': $input.first().json.body.channel_id,\n  'summary': $input.first().json.body.text,\n  'thread_ts': $input.first().json.headers[\"x-slack-request-timestamp\"]\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1856,
+        96
+      ],
+      "id": "b36835ab-25b1-49fe-bc96-df1c52751127",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "68bad88e-4a60-4811-a336-63b299bdf802",
+              "name": "channel_id",
+              "value": "={{ $('Listen for Transcript Upload').item.json.channel_id }}",
+              "type": "string"
+            },
+            {
+              "id": "5bdfdb92-9823-4d66-a681-31e52ae0f3c8",
+              "name": "summary",
+              "value": "={{ $('Get Summary Text').item.json.content }}",
+              "type": "string"
+            },
+            {
+              "id": "1a5beced-4651-4da9-ad00-aecc90782a8c",
+              "name": "thread_ts",
+              "value": "={{ $('Get Upload Message Timestamp').item.json.thread_ts }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        2384,
+        384
+      ],
+      "id": "8144f496-503b-4efa-9909-f06ce6d6a720",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2704,
+        112
+      ],
+      "id": "b71c37bb-ec52-47ac-9ac7-af01232ddbd1",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "c5e84502-7164-4c14-a08c-8f522738d27e",
+              "leftValue": "={{ $json.output.issues }}",
+              "rightValue": "",
+              "operator": {
+                "type": "array",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        4336,
+        400
+      ],
+      "id": "d45d66d1-a750-4f97-a7ba-c78af22cfdef",
+      "name": "No New Issues"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "RC7Jh98wZeWHFaRB",
+          "mode": "list",
+          "cachedResultName": "slack_channel_project_link",
+          "cachedResultUrl": "/projects/ATCAm8uKRqpX8N06/datatables/RC7Jh98wZeWHFaRB"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "channel_id",
+              "keyValue": "={{ $json.channel_id }}"
+            }
+          ]
+        },
+        "limit": 1
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        2976,
+        256
+      ],
+      "id": "953557ef-36a1-43a8-bc7d-b9014073036b",
+      "name": "Get Project from Channel ID",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "bbe985e0-d0ba-4e23-b0b7-8678db110d31",
+              "leftValue": "={{ $json.project_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        3200,
+        256
+      ],
+      "id": "1140f102-a743-4991-be3f-4fcf345525c0",
+      "name": "Project Assigned to Channel"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $('Merge').item.json.channel_id }}",
+          "mode": "id"
+        },
+        "text": "You must setup the automation using the /setup command before using it.",
+        "otherOptions": {
+          "includeLinkToWorkflow": false,
+          "thread_ts": {
+            "replyValues": {
+              "thread_ts": "={{ $('Merge').item.json.thread_ts }}"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.7,
+      "position": [
+        3424,
+        464
+      ],
+      "id": "79ea1450-b4da-494f-8216-5a371f08735d",
+      "name": "Tell User to Setup Channel",
+      "webhookId": "e5593f67-34f0-42a4-9516-1694e45f5151",
+      "credentials": {}
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Get Previous File Upload to Channel": {
+      "main": [
+        [
+          {
+            "node": "Check if File Sent Last 10 Seconds",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check if File Sent Last 10 Seconds": {
+      "main": [
+        [
+          {
+            "node": "Upsert Record of File Upload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Record of File Upload": {
+      "main": [
+        [
+          {
+            "node": "Get Summary File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Listen for Transcript Upload": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Upload Message Timestamp": {
+      "main": [
+        [
+          {
+            "node": "Get Summary Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Summary File": {
+      "main": [
+        [
+          {
+            "node": "Get Upload Message Timestamp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Summary Text": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Existing Project Tickets": {
+      "main": [
+        [
+          {
+            "node": "Extract Title and Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Title and Summary": {
+      "main": [
+        [
+          {
+            "node": "Create Issues",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Create Issues",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Create Issues",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Issues": {
+      "main": [
+        [
+          {
+            "node": "No New Issues",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split List Into Issues": {
+      "main": [
+        [
+          {
+            "node": "Add Issues to Project",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add Issues to Project": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Confirmation No Issues Created": {
+      "main": [
+        []
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Send Confirmation Issues Created",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Get Previous File Upload to Channel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Get Project from Channel ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "No New Issues": {
+      "main": [
+        [
+          {
+            "node": "Send Confirmation No Issues Created",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Split List Into Issues",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Project from Channel ID": {
+      "main": [
+        [
+          {
+            "node": "Project Assigned to Channel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Project Assigned to Channel": {
+      "main": [
+        [
+          {
+            "node": "Get Existing Project Tickets",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Tell User to Setup Channel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "uvXNfvNSZXKkhDpp",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "4e673356-3634-4d1a-9dee-1af28d7fc2d0",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "0b3178866478233b39ccab85cc4a6c6bdfb86963810969ae561a567c52042c3a"
+  },
+  "nodeGroups": [
+    {
+      "id": "29dd7283-9a23-4b35-a835-809af74b4fe2",
+      "name": "Check Valid Transcript",
+      "nodeIds": [
+        "85f99edb-dc64-4563-82d6-6bc3f649419a",
+        "625e2eba-6ddb-43b4-b49b-b5532baaa84a",
+        "466a9d79-86fd-44b3-84cc-171760f664be",
+        "9d10174a-3dfd-48c4-afa3-e2578a90834a"
+      ],
+      "description": "Checks that the uploaded files was a huddle transcript and hasn't already triggered the workflow in the last 10 seconds."
+    },
+    {
+      "id": "ea0bea61-d402-4440-851b-e4573f12fdb1",
+      "name": "Create and Add Tickets",
+      "nodeIds": [
+        "b12b3ee6-ea00-4cf4-95c7-1d421a4f362f",
+        "2772a1e3-35b8-4a7b-93fd-d4d6dfa040bd",
+        "2dc2040b-aa67-4088-9d92-effcf91e48b8",
+        "6b4465b1-6ab6-462f-807e-d9c6be2d1de1",
+        "21035e4f-5414-4799-9f9d-73df44a73471",
+        "d45d66d1-a750-4f97-a7ba-c78af22cfdef",
+        "16297832-96e0-4c01-a062-f7f4537a3766",
+        "02b6eaac-8492-4a08-bf16-e7ce7ddc814b",
+        "e39c28e2-38c6-423a-981c-c5a66ab6a5ef"
+      ],
+      "description": "Creates the tickets and adds them to the Github project."
+    },
+    {
+      "id": "40a4709b-253e-467f-b585-db91bbb3a3e0",
+      "name": "Get Meeting Summary",
+      "nodeIds": [
+        "6f1ea28c-8d0c-4ff1-b847-77a06334b23b",
+        "54c075ab-5e12-4de6-8fcc-ab1727cada95",
+        "019503fe-c8e6-45ee-a426-aec3e41569c3",
+        "8144f496-503b-4efa-9909-f06ce6d6a720"
+      ],
+      "description": "Retrieves the meeting summary text and timestamp of the message in order to retrieve the correct message thread."
+    },
+    {
+      "id": "af248323-839d-4911-b12c-cf023fd5c705",
+      "name": "Manual Summary Ingestion",
+      "nodeIds": [
+        "f1e229d8-7508-445e-8234-882709982406",
+        "b36835ab-25b1-49fe-bc96-df1c52751127"
+      ],
+      "description": "Receives a manual summary from a slack slash command."
+    },
+    {
+      "id": "955e436a-d813-4f10-a5c1-9bc4f06aa3ca",
+      "name": "Get Existing Tickets",
+      "nodeIds": [
+        "368f4f0d-5683-4d2b-afbc-20aae439e3ba",
+        "1bbb200f-41d4-4d5a-987a-4d764d72956b",
+        "953557ef-36a1-43a8-bc7d-b9014073036b",
+        "1140f102-a743-4991-be3f-4fcf345525c0",
+        "79ea1450-b4da-494f-8216-5a371f08735d"
+      ],
+      "description": "Retrieves existing project ticket titles and summaries in order to avoid duplication."
+    }
+  ],
+  "id": "9Qx1fgbVuQgWm3IV",
+  "tags": []
+}
