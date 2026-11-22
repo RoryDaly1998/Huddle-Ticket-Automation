@@ -30,19 +30,20 @@ contracts/            # JSON Schemas + fixtures + signature test vectors (langua
   schemas/ start_work, job, ticket_extraction, judge_request, judge_response, newproject_work
   fixtures/ valid & invalid examples per schema
   vectors/  slack_signature.json, standard_webhooks.json, job_id.json
-prompts/              # versioned: ticket_extraction.v1.md (fixed regex/format defects)
-python_common/        # pyproject, mypy strict
-  config.py           # SSM via Powertools Parameters, cached at cold start
-  slack_verify.py     # raw-body HMAC + 5 min timestamp window
-  webhook_verify.py   # Standard Webhooks
-  lambda_invoke.py    # InvocationType=Event wrapper
-  models.py           # pydantic models generated/validated against contracts
-  stores/ job_store.py (conditional transitions), link_store.py
-  clients/ slack.py, github.py, generator.py, judge.py
-  fakes/  in-memory implementations of every interface
-lambdas/<name>/handler.py + pyproject.toml   # six Lambdas, thin handlers
-scripts/ build.py (per-Lambda arm64 zips), eval_judge.py
-tests/ unit/ contract/ vectors/   # all unit-level; stores tested with moto/fakes
+prompts/              # versioned: ticket_extraction_v1.md (fixed regex/format defects)
+src/                  # all deployable Python code (not itself a package; import as python_common.x, lambdas.x)
+  python_common/        # pyproject, mypy strict
+    config.py           # SSM via Powertools Parameters, cached at cold start
+    slack_verify.py     # raw-body HMAC + 5 min timestamp window
+    webhook_verify.py   # Standard Webhooks
+    lambda_invoke.py    # InvocationType=Event wrapper
+    models.py           # pydantic models generated/validated against contracts
+    stores/ job_store.py (conditional transitions), link_store.py
+    clients/ slack.py, github.py, generator.py, judge.py
+    fakes/  in-memory implementations of every interface
+  lambdas/<snake_case_name>/handler.py + pyproject.toml   # six Lambdas, thin handlers: slack_summary, slack_newproject, webhook, starter, finisher, newproject_worker
+scripts/ build.py (per-Lambda arm64 zips), eval_judge.py   # dev tooling, not deployed; stays at root
+tests/                # at root; mirrors the contents of src/ (no src segment) plus scripts/; all unit-level, contract and vector tests included; stores tested with moto/fakes
 pyproject.toml, uv.lock, ruff/mypy/pytest config
 ```
 
@@ -101,17 +102,17 @@ pyproject.toml, uv.lock, ruff/mypy/pytest config
 | Summary regex mismatch | no regex: structured output has explicit `title`/`summary` fields; prompt and schema agree |
 | Wrong `thread_ts` on slash path | use the message/command context ts, kept as string |
 | Racy 10s dedupe window | conditional put on `job_id`; no time window |
-| Prompt defects | clean `prompts/ticket_extraction.v1.md`; contract test checks prompt/schema agreement |
+| Prompt defects | clean `prompts/ticket_extraction_v1.md`; contract test checks prompt/schema agreement |
 | Weak huddle filter | filter on Slack-generated huddle summary files |
 | No signature verification | verified in every route handler |
 | Partial failure | `created_item_ids` makes retries idempotent |
 
 ## Python-side assumptions for infra
 - Env vars: `JOBS_TABLE`, `LINKS_TABLE`, `SSM_PREFIX`, `STARTER_FN`, `FINISHER_FN`, `NEWPROJECT_WORKER_FN`, `POWERTOOLS_SERVICE_NAME`.
-- Handlers: `handler.handler` in each `lambdas/<name>/`; runtime `python3.14`, arm64.
+- Handlers: `handler.handler` in each `src/lambdas/<snake_case_name>/`; runtime `python3.14`, arm64.
 - IAM per §9 of architecture.md (only `starter` and `finisher` read the OpenAI key; and so on).
 
 ## Verification
-- Manually run `uv run ruff check . && uv run mypy python_common && uv run pytest`: unit, contract and test-vector tests must be green.
+- Manually run `uv run ruff check . && uv run mypy src/python_common && uv run pytest`: unit, contract and test-vector tests must be green.
 - Unit tests assert per handler: duplicate deliveries are dropped, retries create no duplicate drafts (fakes), the oversize-summary guard replies with the error, and no transcript text reaches logs.
 - Test vectors (fixed input → expected output pairs, e.g. body + secret + timestamp → expected Slack signature) are stored as JSON in `contracts/vectors/`, so the later Rust ports can run the same cases.

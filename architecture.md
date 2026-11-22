@@ -253,14 +253,16 @@ Proposed monorepo layout (indicative):
 ├── architecture.md
 ├── contracts/              # JSON Schemas, fixtures, signature test vectors
 ├── prompts/                # versioned LLM prompts
-├── lambdas/
-│   ├── slack_summary/
-│   ├── slack_newproject/
-│   ├── webhook/
-│   ├── starter/
-│   ├── finisher/
-│   └── newproject_worker/
-├── python_common/          # Python-only helpers shared by Lambdas (signature checks, config, Lambda invoke client)
+├── src/                    # all deployable Python code
+│   ├── lambdas/
+│   │   ├── slack_summary/
+│   │   ├── slack_newproject/
+│   │   ├── webhook/
+│   │   ├── starter/
+│   │   ├── finisher/
+│   │   └── newproject_worker/
+│   └── python_common/      # Python-only helpers shared by Lambdas (signature checks, config, Lambda invoke client)
+├── tests/                  # mirrors the contents of src/ (and scripts/)
 ├── slack/                  # app manifest template (derive from the current slack-bot-manifest.json)
 ├── infra/
 │   ├── bootstrap/          # one-time: Terraform state bucket
