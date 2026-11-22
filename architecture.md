@@ -1,6 +1,6 @@
 # Huddle Ticket Automation: Architecture
 
-**Status:** Draft v0.1 · **Last updated:** 2026-11-21 · **Scope:** high-level architecture. Detailed designs (schemas, IAM policies, Terraform modules) live in separate documents.
+**Status:** Draft v0.2 · **Last updated:** 2026-11-22 · **Scope:** high-level architecture. Detailed designs (schemas, IAM policies, Terraform modules) live in separate documents.
 
 ---
 
@@ -12,7 +12,7 @@ When Slack posts an AI-generated huddle summary to a channel (or a user runs `/m
 2. drops any that duplicate tickets already in the channel's GitHub Project, and
 3. adds the rest to that Project as **draft items** for manual review.
 
-Today this runs as three n8n workflows (transcription, setup, error handler). This document describes the target: **Python Lambdas on AWS**, deployed with **Terraform**, with selected components later rewritten in **Rust**.
+Today this runs as three n8n workflows (`transcription`, `setup`, `transcription-error-handler`), where the LLM both extracts tickets and drops duplicates in a single prompt that is given the existing tickets' titles and summaries. This document describes the target: **Python Lambdas on AWS**, deployed with **Terraform**, with selected components later rewritten in **Rust**.
 
 ## 2. Goals, constraints and non-goals
 
@@ -108,7 +108,7 @@ The default API Gateway URL is used; no custom domain is required. There is **no
 |---|---|---|
 | **slack-summary** | API Gateway (`/slack/summary`) | Verify Slack signature and timestamp (raw body). Parse either a `file_shared` event or a `/meetingsummary` payload and normalise it into one `StartWork` message. For events: answer URL-verification challenges and ignore everything except Slack-generated huddle summary files. Asynchronously invoke `starter` (IDs only on the huddle path, summary text on the manual path) and return immediately; the slash command also returns an in-channel acknowledgement. Needs the Slack signing secret only, not the bot token. |
 | **slack-newproject** | API Gateway (`/slack/newproject`) | Verify Slack signature and timestamp. On `/setup`, open the modal within Slack's `trigger_id` window. On modal submission, asynchronously invoke `newproject-worker` and acknowledge. Needs the signing secret and the bot token. |
-| **starter** | Async invoke (from `slack-summary`) | Claim the job (conditional write). Look up the channel's project; if none, tell the user to run `/setup`; otherwise record `last_summary_at` on the link. Fetch the summary text from Slack (huddle path). Start a **background** OpenAI response with the ticket-extraction prompt and structured-output schema. Record the response ID and move the job to `generating`. |
+| **starter** | Async invoke (from `slack-summary`) | Claim the job (conditional write). Look up the channel's project; if none, tell the user to run `/setup`; otherwise record `last_summary_at` on the link. Huddle path: resolve the file via `files.info` (channel and the message's `thread_ts`/`ts` from `shares`, public or private) and fetch the summary text with `canvases.getContent`. Start a **background** OpenAI response with the ticket-extraction prompt and structured-output schema. Record the response ID and move the job to `generating`. |
 | **openai-webhook** | API Gateway | Verify the webhook signature (Standard Webhooks headers). Asynchronously invoke `finisher` with `{response_id, event_type}`. Return 2xx only after Lambda has accepted the invocation. |
 | **finisher** | Async invoke (from `openai-webhook`) | Move the job to `finishing` (conditional transition, so duplicate deliveries are harmless). Retrieve the response. Fetch existing project items from GitHub (paginated). Score new tickets against existing ones and against each other using the duplicate judge. Create draft items for tickets below the threshold. Reply in the Slack thread. Mark the job `completed` or `failed`. |
 | **newproject-worker** | Async invoke (from `slack-newproject`) | After the modal is submitted: validate the project URL and repo URL, confirm the bot can write to the project, accept a pending repo invitation if present, upsert the channel→project link, confirm in the channel. |
@@ -228,7 +228,7 @@ Each external dependency sits behind a small interface so it can be faked in tes
 |---|---|---|---|
 | `TicketGenerator` | Start and retrieve a background generation | OpenAI Responses API (GPT Luna) | Another vendor; synchronous mode |
 | `DuplicateJudge` | Score each new ticket against existing tickets and each other, returning probabilities | Jev or OpenAI's decisions API (**evaluation pending**) | Embeddings plus threshold; plain LLM |
-| `GitHubClient` | Read project items (paginated), create draft items, validate project access | GitHub GraphQL and REST | |
+| `GitHubClient` | Read project items (paginated; Issue, DraftIssue and PullRequest titles and bodies), create draft items (`addProjectV2DraftIssue`), validate project access (`viewerCanUpdate`), list and accept repo invitations | GitHub GraphQL and REST | |
 | `SlackClient` | Fetch file and canvas content, post thread replies, open modals | Slack Web API | |
 | `JobStore`, `LinkStore` | Persistence | DynamoDB | |
 | `Config` | Secrets and settings | SSM Parameter Store | |
@@ -261,7 +261,7 @@ Proposed monorepo layout (indicative):
 │   ├── finisher/
 │   └── newproject_worker/
 ├── python_common/          # Python-only helpers shared by Lambdas (signature checks, config, Lambda invoke client)
-├── slack/                  # app manifest template
+├── slack/                  # app manifest template (derive from the current slack-bot-manifest.json)
 ├── infra/
 │   ├── bootstrap/          # one-time: Terraform state bucket
 │   └── terraform/
@@ -327,6 +327,8 @@ Deliberately avoided: an Application Load Balancer (roughly $16+/month idle), a 
 
 Steps 2, 5 and 6 are manual and belong in the README.
 
+The current `slack-bot-manifest.json` already carries the bot scopes (`canvases:read`, `channels:history`, `channels:read`, `chat:write`, `commands`, `files:read`, `groups:history`, `groups:read`), the `file_shared` event and both slash commands, all with empty URLs. The target manifest additionally needs interactivity enabled (for the setup modal submission) and its request URL, and its `long_description` should stop referring to n8n.
+
 ## 13. Observability and testing
 
 - **Logging:** structured JSON with `job_id` as the correlation ID. Python uses AWS Lambda Powertools (Logger, Parameters, Metrics); Rust will use `tracing`. Idempotency is hand-rolled via conditional writes (portable) rather than Powertools' idempotency utility.
@@ -383,11 +385,28 @@ Steps 2, 5 and 6 are manual and belong in the README.
 
 ### Known issues in the current n8n workflow (fix, do not port)
 
-- Existing-ticket query fetches only the first 100 items (no pagination).
-- The summary regex expects `## Summary` while the prompt template emits `## 1. Summary`.
-- On the slash command path, `thread_ts` is taken from the request timestamp header.
-- The 10-second per-channel duplicate window is racy and can drop legitimate uploads.
-- The prompt contains paste artifacts, and says "empty JSON array" while the schema expects `{issues: []}`.
+Re-verified against `n8n-workflows/*.json` on 2026-11-22; all are still present.
+
+**`transcription.json`**
+
+- **No pagination.** *Get Existing Project Tickets* queries `items(first: 100)` and never pages, so projects with more than 100 items are only partly compared. It reads Issue, DraftIssue and PullRequest titles and bodies.
+- **Summary regex never matches.** *Extract Title and Summary* uses `## Summary\s*([^#]*)`, but the prompt's body template emits `## 1. Summary`. (The structured-output schema's `description` field says `## Summary`, so the prompt and schema disagree with each other too.) Result: the existing-ticket "summary" is always an empty string and the LLM compares titles only.
+- **Wrong `thread_ts` on the slash-command path.** *Code in JavaScript1* sets `thread_ts` from the `x-slack-request-timestamp` header, which is the request time, not a message timestamp. Replies on this path therefore do not attach to the user's message. (On the huddle path it is correctly the file's message `thread_ts`/`ts`, but it is stored as a number, which risks precision loss on Slack timestamps.)
+- **Racy duplicate window.** The per-channel lock (*Get Previous File Upload to Channel* → *Check if File Sent Last 10 Seconds* → *Upsert Record of File Upload*) is a read-then-write, not atomic, so two near-simultaneous events can both pass. It also silently drops any legitimate upload within 10 seconds of the previous one. It applies to the huddle path only.
+- **Prompt defects.** The prompt contains paste artifacts (a stray `[11:23 AM]`, non-breaking spaces and run-together markdown) and tells the model to output "an empty JSON array" while the schema requires `{ "issues": [] }`.
+- **Weak huddle filter.** *If1* only checks `user_id == USLACKBOT`; any Slackbot-shared file passes, not just huddle summaries. The target filters on Slack-generated huddle summary files.
+- **No request verification.** The Slack trigger node and the two raw webhooks (`/meetingsummary`, `/setup`) do not verify Slack signatures (the README even says not to add a signing secret to the credential). The target verifies every request (§9).
+- **Partial failures.** Drafts are created one at a time; a failure partway is reported only as a count ("N tickets encountered an error"), with no record of which were created, so a retry can duplicate them. The target records `created_item_ids` (§6).
+- **Error handler coverage.** *transcription-error-handler* can reply in the thread only if *Get Upload Message Timestamp* ran, i.e. the huddle path after file lookup; other failures go to the channel root. It also emails via Gmail.
+
+**`setup.json`**
+
+- **Narrow URL parsing.** Only `https://github.com/users/<login>/projects/<n>` URLs match. The repository is assumed to be owned by the same login as the project (`GET /repos/{login}/{repo}` using the last URL segment).
+- **Repo is validated but never stored or used.** The link table holds only `channel_id` and `project_id`. Duplicate detection reads project items, not the repo, so the README's statement that "only the one you enter here will be scanned for duplicate tickets" is inaccurate for the current workflow.
+- **Invitation lookup not paginated.** `user/repository_invitations?per_page=100` reads one page.
+- **Interaction model.** Setup uses an n8n *Send and Wait* form (60-minute limit) rather than a Slack modal; the modal is a target-design change (decision 10).
+
+**Data tables.** The workflows use two n8n data tables (`slack_channel_lock`: `channel_id,last_upload_ts`; `slack_channel_project_link`: `channel_id,project_id`), matching the two schema CSVs. The README describes a single three-column table and should be corrected separately. In the target, the lock table is replaced by the `jobs` dedupe key and `last_summary_at` on the link (§6).
 
 ## 17. Glossary
 

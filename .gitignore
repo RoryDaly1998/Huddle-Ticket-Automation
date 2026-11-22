@@ -19,6 +19,10 @@ venv.bak/
 *~
 .DS_Store
 
+# Claude
+settings.json
+.claude/hooks/
+
 # Windows
 Thumbs.db
 ehthumbs.db
