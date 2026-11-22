@@ -6,13 +6,34 @@ ENV/
 env.bak/
 venv.bak/
 
-# Python bytecode and cache
-.pytest_cache/
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Linux
+*~
+.directory
 
 # Distribution / packaging
 build/
@@ -32,7 +53,6 @@ wheels/
 *.egg
 
 # Testing and coverage
-.pytest_cache/
 .coverage
 .coverage.*
 htmlcov/
@@ -43,26 +63,24 @@ htmlcov/
 .dmypy.json
 dmypy.json
 
-# IDEs
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-.DS_Store
-
-# Environment variables
-.env
-.env.local
-.env.*.local
-
-# OS files
-Thumbs.db
-.DS_Store
-
-# Streamlit specific
-.streamlit/
-
 # Temporary files
 *.tmp
 *.temp
+
+# Application and audit logs
+logs/
+*.log
+
+# Python bytecode and cache
+.pytest_cache/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Rust / Cargo
+debug/
+target/
+**/*.rs.bk
+*.pdb
