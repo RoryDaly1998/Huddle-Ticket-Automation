@@ -49,7 +49,7 @@ flowchart LR
     APIGW[API Gateway HTTP API]
     SummaryIn[Lambda: slack-summary]
     ProjectIn[Lambda: slack-newproject]
-    Hook[Lambda: openai-webhook]
+    Hook[Lambda: webhook]
     FailQ[("SQS: failed-events")]
     Starter[Lambda: starter]
     Finisher[Lambda: finisher]
@@ -92,7 +92,7 @@ flowchart LR
 |---|---|---|
 | `POST /slack/summary` | Slack: `file_shared` events (the app's Events request URL) and the `/meetingsummary` slash command | `slack-summary` |
 | `POST /slack/newproject` | Slack: the `/setup` slash command and the setup modal submission (the app's Interactivity request URL) | `slack-newproject` |
-| `POST /openai/webhook` | OpenAI (`response.*` events) | `openai-webhook` |
+| `POST /webhook` | OpenAI (`response.*` events) | `webhook` |
 
 Routes are grouped by what they do, not by Slack payload type. Slack allows one Events request URL, one Interactivity request URL and a separate URL per slash command, so this mapping is configured in the Slack app manifest. The slash commands keep their user-facing names (`/meetingsummary`, `/setup`); only the URL paths differ.
 
@@ -109,8 +109,8 @@ The default API Gateway URL is used; no custom domain is required. There is **no
 | **slack-summary** | API Gateway (`/slack/summary`) | Verify Slack signature and timestamp (raw body). Parse either a `file_shared` event or a `/meetingsummary` payload and normalise it into one `StartWork` message. For events: answer URL-verification challenges and ignore everything except Slack-generated huddle summary files. Asynchronously invoke `starter` (IDs only on the huddle path, summary text on the manual path) and return immediately; the slash command also returns an in-channel acknowledgement. Needs the Slack signing secret only, not the bot token. |
 | **slack-newproject** | API Gateway (`/slack/newproject`) | Verify Slack signature and timestamp. On `/setup`, open the modal within Slack's `trigger_id` window. On modal submission, asynchronously invoke `newproject-worker` and acknowledge. Needs the signing secret and the bot token. |
 | **starter** | Async invoke (from `slack-summary`) | Claim the job (conditional write). Look up the channel's project; if none, tell the user to run `/setup`; otherwise record `last_summary_at` on the link. Huddle path: resolve the file via `files.info` (channel and the message's `thread_ts`/`ts` from `shares`, public or private) and fetch the summary text with `canvases.getContent`. Start a **background** OpenAI response with the ticket-extraction prompt and structured-output schema. Record the response ID and move the job to `generating`. |
-| **openai-webhook** | API Gateway | Verify the webhook signature (Standard Webhooks headers). Asynchronously invoke `finisher` with `{response_id, event_type}`. Return 2xx only after Lambda has accepted the invocation. |
-| **finisher** | Async invoke (from `openai-webhook`) | Move the job to `finishing` (conditional transition, so duplicate deliveries are harmless). Retrieve the response. Fetch existing project items from GitHub (paginated). Score new tickets against existing ones and against each other using the duplicate judge. Create draft items for tickets below the threshold. Reply in the Slack thread. Mark the job `completed` or `failed`. |
+| **webhook** | API Gateway | Verify the webhook signature (Standard Webhooks headers). Asynchronously invoke `finisher` with `{response_id, event_type}`. Return 2xx only after Lambda has accepted the invocation. |
+| **finisher** | Async invoke (from `webhook`) | Move the job to `finishing` (conditional transition, so duplicate deliveries are harmless). Retrieve the response. Fetch existing project items from GitHub (paginated). Score new tickets against existing ones and against each other using the duplicate judge. Create draft items for tickets below the threshold. Reply in the Slack thread. Mark the job `completed` or `failed`. |
 | **newproject-worker** | Async invoke (from `slack-newproject`) | After the modal is submitted: validate the project URL and repo URL, confirm the bot can write to the project, accept a pending repo invitation if present, upsert the channel→project link, confirm in the channel. |
 
 Hand-offs between Lambdas use **asynchronous Lambda invocation**. A Lambda stops running as soon as it returns, so work that must continue after a response runs in a separately invoked function. The caller invokes the next function with `InvocationType=Event`, receives an immediate acknowledgement that the event was accepted, and returns. Lambda holds the event, retries failed runs (up to two retries), and after the final retry or the maximum event age sends the event to a shared on-failure destination: the SQS queue `failed-events`. Retry settings, maximum event age and the failure queue's retention are configured per consumer function (values deferred, see §16). Delivery is at-least-once, which the conditional writes in §5.4 already tolerate.
@@ -128,7 +128,7 @@ sequenceDiagram
   participant L as channel_project_link
   participant J as jobs
   participant O as OpenAI
-  participant W as openai-webhook
+  participant W as webhook
   participant F as finisher
   participant G as GitHub
   participant D as duplicate judge
@@ -206,7 +206,7 @@ DynamoDB, on-demand billing. No transcripts are ever written to DynamoDB.
 | `source` | string | `huddle` or `manual` |
 | `channel_id`, `thread_ts` | string | Where to reply |
 | `project_id` | string | Copied from the link at claim time |
-| `openai_response_id` | string | Indexed by a GSI so the finisher can look the job up |
+| `response_id` | string | Indexed by a GSI so the finisher can look the job up |
 | `created_item_ids` | list | Recorded as drafts are created, so a retry does not duplicate them |
 | `error` | string | Failure reason, if any |
 | `created_at`, `ttl` | number | Rows expire automatically |
@@ -256,7 +256,7 @@ Proposed monorepo layout (indicative):
 ├── lambdas/
 │   ├── slack_summary/
 │   ├── slack_newproject/
-│   ├── openai_webhook/
+│   ├── webhook/
 │   ├── starter/
 │   ├── finisher/
 │   └── newproject_worker/
@@ -272,8 +272,8 @@ Proposed monorepo layout (indicative):
 
 ## 9. Security
 
-- **Request verification.** Every public route verifies its signature over the raw request body before doing any work: Slack's signing secret plus timestamp window on `/slack/*`, the Standard Webhooks signature on `/openai/webhook`. Unverified requests never reach an LLM.
-- **Least-privilege IAM per Lambda.** For example, `openai-webhook` can read only the webhook secret and invoke `finisher`; `slack-summary` can read only the Slack signing secret and invoke `starter`; only `starter` and `finisher` can read the OpenAI key.
+- **Request verification.** Every public route verifies its signature over the raw request body before doing any work: Slack's signing secret plus timestamp window on `/slack/*`, the Standard Webhooks signature on `/webhook`. Unverified requests never reach an LLM.
+- **Least-privilege IAM per Lambda.** For example, `webhook` can read only the webhook secret and invoke `finisher`; `slack-summary` can read only the Slack signing secret and invoke `starter`; only `starter` and `finisher` can read the OpenAI key.
 - **Secrets** live in SSM Parameter Store (SecureString). Terraform creates the parameters with placeholder values and ignores later changes, so real values are set out of band and never enter Terraform state.
 - **No stored transcripts.** DynamoDB holds IDs and status only. Transcript text is never logged. On the manual path the summary text travels in the invocation payload, which Lambda holds only until the event is processed or expires (maximum event age) and which is copied to `failed-events` if processing fails, so the maximum event age and that queue's retention are kept short (values deferred, see §16).
 - **OpenAI retention.** Background mode makes OpenAI retain response data for roughly ten minutes and is not ZDR-compatible. Acceptable today (no retention requirement); it is one reason generation sits behind the `TicketGenerator` interface.
@@ -339,7 +339,7 @@ The current `slack-bot-manifest.json` already carries the bot scopes (`canvases:
 
 1. **Python on AWS.** Implement the six Lambdas against the contracts. Recommended: deploy a walking skeleton early (`slack-summary` answering Slack's challenge) to validate the Slack and OpenAI handshakes before the full logic exists. Cut over from n8n using a test channel and project.
 2. **Terraform.** Modules and first-deployment procedure as in §12.
-3. **Rust.** Suggested order: `openai-webhook` (smallest, a few-seconds deadline), then `slack-summary` (3-second deadline, where cold starts matter) and `slack-newproject`, then the workers.
+3. **Rust.** Suggested order: `webhook` (smallest, a few-seconds deadline), then `slack-summary` (3-second deadline, where cold starts matter) and `slack-newproject`, then the workers.
 4. **CI/CD.** Build, test, deploy pipeline; separate environments considered here.
 5. **UI.** HTTP API supports JWT authorizers for when it is needed.
 6. **Maintain, optimise, add features.**
@@ -358,8 +358,8 @@ The current `slack-bot-manifest.json` already carries the bot scopes (`canvases:
 | 8 | Self-hosted per organisation, one environment, `us-east-1` | Multi-tenant SaaS | Simplest model; cheapest region |
 | 9 | Hand-rolled idempotency via conditional writes | Powertools idempotency utility | Portable to Rust |
 | 10 | Modal-based `/setup` | Command arguments | Self-documenting; extensible to a richer Slack form |
-| 11 | One Lambda per public endpoint (`slack-summary`, `slack-newproject`, `openai-webhook`) | One Lambda routing all endpoints | Different secrets and permissions per route; independent deployment, failure isolation and Rust porting |
-| 12 | Routes grouped by function: `/slack/summary` (file events and `/meetingsummary`), `/slack/newproject` (`/setup` and its modal), `/openai/webhook` | Routes per Slack payload type (events, commands, interactivity) | One purpose and one handler per route; entry points that share logic share an endpoint |
+| 11 | One Lambda per public endpoint (`slack-summary`, `slack-newproject`, `webhook`) | One Lambda routing all endpoints | Different secrets and permissions per route; independent deployment, failure isolation and Rust porting |
+| 12 | Routes grouped by function: `/slack/summary` (file events and `/meetingsummary`), `/slack/newproject` (`/setup` and its modal), `/webhook` | Routes per Slack payload type (events, commands, interactivity) | One purpose and one handler per route; entry points that share logic share an endpoint |
 | 13 | Asynchronous Lambda invocation for hand-offs, with one shared SQS failure queue | An SQS queue plus DLQ per consumer; HTTP calls between Lambdas; self-invocation | A Lambda stops when it returns, so post-response work needs its own invocation. Async invoke gives automatic retries and failure capture with far fewer resources. A visible backlog and per-hop concurrency caps are not needed at this scale (revisit if they become necessary, see §16) |
 
 ## 16. Deferred, open items and known issues

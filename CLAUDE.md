@@ -16,7 +16,7 @@ Slack huddle summaries → LLM-extracted action items → de-duplicated against 
 
 ## Architecture essentials (target)
 
-- Lambdas: `slack-summary`, `slack-newproject`, `openai-webhook` (API Gateway entry points that verify signatures and return fast), and `starter`, `finisher`, `newproject-worker` (invoked asynchronously with `InvocationType=Event`; failures go to a shared `failed-events` SQS queue). Delivery is at-least-once, so state transitions use conditional writes on a `jobs` record (`generating` → `finishing` → `completed`/`failed`).
+- Lambdas: `slack-summary`, `slack-newproject`, `webhook` (API Gateway entry points that verify signatures and return fast), and `starter`, `finisher`, `newproject-worker` (invoked asynchronously with `InvocationType=Event`; failures go to a shared `failed-events` SQS queue). Delivery is at-least-once, so state transitions use conditional writes on a `jobs` record (`generating` → `finishing` → `completed`/`failed`).
 - LLM work uses a **background** OpenAI response; completion arrives via a signed webhook (Standard Webhooks) rather than polling.
 - Contracts (invocation payloads, job record, ticket schema, judge I/O) are JSON Schema files with shared fixtures; logic that must exist in both Python and Rust (Slack/webhook signature verification, dedupe keys) is pinned by shared test vectors, not shared libraries.
 - GitHub access is a bot account with a **classic** PAT (fine-grained tokens/Apps can't reach user-owned Projects v2); user-owned projects only.
