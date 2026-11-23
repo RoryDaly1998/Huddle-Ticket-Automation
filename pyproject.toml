@@ -1,0 +1,147 @@
+[project]
+name = "huddle-ticket-automation"
+version = "0.1.0"
+description = "Slack huddle summaries to de-duplicated GitHub Project draft items (Python Lambdas on AWS)."
+requires-python = ">=3.14"
+# Depending on every member makes a plain `uv sync` install all runtime libraries for tests and mypy.
+dependencies = [
+    "finisher",
+    "newproject-worker",
+    "python-common[http,openai]",
+    "slack-newproject",
+    "slack-summary",
+    "starter",
+    "webhook",
+]
+
+[dependency-groups]
+dev = [
+    "boto3>=1.40",
+    "boto3-stubs[dynamodb,lambda,ssm]>=1.40",
+    "jsonschema>=4.25",
+    "moto[dynamodb]>=5.1",
+    "mypy>=1.18",
+    "pytest>=9.0",
+    "pytest-mock>=3.15",
+    "respx>=0.22",
+    "ruff>=0.14",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = ["src/python_common", "src/lambdas/*"]
+
+[tool.uv.sources]
+finisher = { workspace = true }
+newproject-worker = { workspace = true }
+python-common = { workspace = true }
+slack-newproject = { workspace = true }
+slack-summary = { workspace = true }
+starter = { workspace = true }
+webhook = { workspace = true }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# "." makes the dev scripts importable as `scripts.<name>` (otherwise, on Windows, `scripts`
+# can resolve to the virtualenv's `Scripts` directory).
+pythonpath = ["src", "."]
+addopts = ["--strict-markers", "--import-mode=importlib"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py314"
+src = ["src"]
+
+[tool.ruff.lint]
+select = [
+    "A",     # flake8-builtins: stops names that shadow built-ins (a variable called `list` or `id`)
+    "ANN",   # flake8-annotations: every function needs type hints
+    "ARG",   # flake8-unused-arguments: flags function arguments that are never used
+    "B",     # flake8-bugbear: common bug patterns, e.g. mutable default arguments (`def f(x=[])`)
+    "BLE",   # flake8-blind-except: bans bare `except:` and `except Exception:` that swallow errors
+    "C4",    # flake8-comprehensions: cleaner list, dict and set comprehensions
+    "C90",   # mccabe: flags functions that are too complex (too many branches)
+    "D",     # pydocstyle: docstring formatting rules (style chosen in [lint.pydocstyle] below)
+    "DTZ",   # flake8-datetimez: bans timezone-naive datetimes such as `datetime.now()`
+    "E",     # pycodestyle errors: basic style errors such as bad spacing and long lines
+    "ERA",   # eradicate: flags commented-out code
+    "F",     # pyflakes: unused imports, undefined names, unused variables
+    "FBT",   # flake8-boolean-trap: flags unclear `do_thing(True)` calls, use keyword args instead
+    "G",     # flake8-logging-format: correct formatting of log messages
+    "I",     # isort: sorts and groups imports (standard library, third-party, first-party)
+    "INP",   # flake8-no-pep420: flags a folder with Python files but no `__init__.py`
+    "ISC",   # flake8-implicit-str-concat: flags accidental implicit string joins like `"a" "b"`
+    "LOG",   # flake8-logging: correct use of the `logging` module itself
+    "N",     # pep8-naming: snake_case functions and variables, CapWords classes
+    "PERF",  # perflint: avoids slow patterns in loops
+    "PGH",   # pygrep-hooks: flags blanket `# type: ignore` and `# noqa` that name no specific rule
+    "PIE",   # flake8-pie: assorted unnecessary code (redundant `pass`, duplicate class fields)
+    "PL",    # pylint: too many arguments or branches, magic numbers, and similar
+    "PT",    # flake8-pytest-style: consistent pytest conventions
+    "PTH",   # flake8-use-pathlib: use `pathlib` instead of `os.path`
+    "RET",   # flake8-return: tidy `return` statements (no needless `else` after a return)
+    "RSE",   # flake8-raise: tidy `raise` statements (no needless parentheses)
+    "RUF",   # ruff-specific: ruff's own extra rules
+    "S",     # flake8-bandit: security checks (hard-coded passwords, `eval`, unsafe `subprocess`)
+    "SIM",   # flake8-simplify: simplifies code, e.g. `if x: return True else: return False`
+    "SLF",   # flake8-self: flags access to another object's private members (`obj._thing`)
+    "T20",   # flake8-print: bans `print()`, use logging instead
+    "TC",    # flake8-type-checking: moves type-only imports under `if TYPE_CHECKING:`
+    "TRY",   # tryceratops: good exception-handling habits
+    "UP",    # pyupgrade: rewrites old syntax into modern syntax for the target Python version
+    "W",     # pycodestyle warnings: whitespace and formatting warnings
+]
+ignore = [
+    "D100",    # no module docstring required
+    "D104",    # no package docstring required
+    "ISC001",  # conflicts with the formatter
+]
+
+[tool.ruff.lint.flake8-type-checking]
+# pydantic needs field annotation types at runtime, so TC must not move them under TYPE_CHECKING.
+runtime-evaluated-base-classes = ["pydantic.BaseModel"]
+
+[tool.ruff.lint.isort]
+# Test helpers are imported by full path from the repository root (tests.<path>.helpers), and
+# tests import the dev scripts the same way (scripts.<name>).
+known-first-party = ["scripts", "tests"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "pep257"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = [
+    "ANN",      # tests have no type hints
+    "ARG002",   # pytest fixtures are often requested only for their patching side effect
+    "D",        # tests have no docstrings
+    "INP001",   # tests/ deliberately has no __init__.py (pytest importlib mode)
+    "PLR2004",  # literal expected values are normal in tests
+    "S101",     # pytest uses assert
+    "SLF001",   # every method, private ones included, has its own unit tests
+]
+"scripts/**" = [
+    "E402",    # scripts put src/ on sys.path before importing python_common
+    "INP001",  # scripts/ is a folder of dev tools, not a package
+    "T201",    # dev tools may print
+]
+
+[tool.ruff.format]
+docstring-code-format = true
+# Keep the formatter off Markdown docs (it would otherwise reformat their Python code blocks).
+exclude = ["*.md"]
+
+[tool.mypy]
+python_version = "3.14"
+strict = true
+mypy_path = "src"
+files = ["src/python_common", "src/lambdas", "scripts"]
+explicit_package_bases = true
+plugins = ["pydantic.mypy"]
+warn_unreachable = true
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true

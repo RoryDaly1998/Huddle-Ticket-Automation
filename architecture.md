@@ -182,7 +182,7 @@ stateDiagram-v2
   failed --> [*]
 ```
 
-Every transition is a **conditional write**. A duplicate invocation or webhook delivery fails the condition and is dropped, so every step is safe to retry.
+Every transition is a **conditional write**. A duplicate invocation or webhook delivery that finds the job has moved on fails the condition and is dropped, so every step is safe to retry. While `starter` or `finisher` works on a job it holds a **lease** (`claimed_at` while `received`, `finishing_started_at` while `finishing`). A delivery that meets a live lease raises a retryable `LeaseHeld` and is retried by Lambda; once the lease has expired or been released, the retry takes the job over and resumes it.
 
 ## 6. Data model
 
@@ -210,6 +210,8 @@ DynamoDB, on-demand billing. No transcripts are ever written to DynamoDB.
 | `created_item_ids` | list | Recorded as drafts are created, so a retry does not duplicate them |
 | `error` | string | Failure reason, if any |
 | `created_at`, `ttl` | number | Rows expire automatically |
+| `claimed_at` | number | Unix seconds when `starter`'s claim lease (90 s) started; removed on release |
+| `finishing_started_at` | number | Unix seconds when `finisher`'s lease (180 s) started; removed on release |
 
 ### Configuration (SSM Parameter Store)
 
@@ -286,7 +288,7 @@ Proposed monorepo layout (indicative):
 
 | Failure | Handling |
 |---|---|
-| Slack retries or posts the summary twice | Both trigger the starter; its conditional claim drops the second. |
+| Slack retries or posts the summary twice | Both trigger the starter. Its conditional claim drops the second once the first has moved the job on; if the second arrives while the first still holds its claim lease, it raises `LeaseHeld` and Lambda retries it, and the retry is then dropped (or resumes the job if the first run died). |
 | Slack 3-second deadline | The Slack routes only verify and hand off (or open the modal). |
 | Async invoke is rejected at a Slack route or the webhook (for example throttled) | Return 5xx; the sender retries. 2xx is returned only after Lambda accepts the invocation. |
 | Duplicate OpenAI webhook delivery (at-least-once) | Finisher's conditional transition drops duplicates. |
