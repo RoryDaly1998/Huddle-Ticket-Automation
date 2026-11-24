@@ -4,26 +4,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project state
 
-Slack huddle summaries → LLM-extracted action items → de-duplicated against the channel's GitHub Project → added as **draft items**. The current branch (`20-refactor-into-python`) is mid-migration: the only working implementation is the **n8n workflows** in `n8n-workflows/`; the Python/AWS rewrite described in [architecture.md](architecture.md) has not been written yet (no Python source, tests, Terraform, or build/lint commands exist). `.venv/` is a local, gitignored virtualenv.
+Slack huddle summaries → LLM-extracted action items → de-duplicated against the channel's GitHub Project → added as **draft items**.
 
-## Where things are
+The branch `20-refactor-into-python` is mid-migration. The only deployed implementation is the **n8n workflows** in `n8n-workflows/` (set up per [README.md](README.md)). A Python/AWS rewrite is being built under `src/`, `tests/`, `contracts/`, `prompts/` and `scripts/`; Terraform does not exist yet.
 
-- [architecture.md](architecture.md) — target design (Python Lambdas on AWS via Terraform, selected pieces later in Rust). Source of truth for the rewrite: components (§4), flows (§5), data model (§6), proposed monorepo layout (§8), decision log (§15), and known n8n bugs to *fix, not port* (§16).
-- [README.md](README.md) — setup guide for the **current n8n deployment** (Slack app, n8n credentials, data tables, GitHub classic PAT).
-- `n8n-workflows/` — exported workflow JSON: `transcription.json` (main flow), `setup.json` (`/setup` project linking), `transcription-error-handler.json`. Edit by importing/pasting into n8n; there is no build step.
-- [slack-bot-manifest.json](slack-bot-manifest.json) — Slack app manifest (paste into app settings).
-- `channel-lock-table-schema.csv`, `project-link-table-schema.csv` — column headers for the two n8n data tables (`channel_id,last_upload_ts` and `channel_id,project_id`).
+**Names are mid-rename.** The docs use the new Lambda names (`summary-posted`, `project-added`, `issues-generated`, `process-summary`, `process-issues`, `setup-project`) and hand-off schema names, but the code still uses the old ones (`slack-summary`, `starter`, `finisher`, …). The mapping is in the plan's "Naming" section.
 
-## Architecture essentials (target)
+## Where to look
 
-- Lambdas: `slack-summary`, `slack-newproject`, `webhook` (API Gateway entry points that verify signatures and return fast), and `starter`, `finisher`, `newproject-worker` (invoked asynchronously with `InvocationType=Event`; failures go to a shared `failed-events` SQS queue). Delivery is at-least-once, so state transitions use conditional writes on a `jobs` record (`generating` → `finishing` → `completed`/`failed`).
-- LLM work uses a **background** OpenAI response; completion arrives via a signed webhook (Standard Webhooks) rather than polling.
-- Contracts (invocation payloads, job record, ticket schema, judge I/O) are JSON Schema files with shared fixtures; logic that must exist in both Python and Rust (Slack/webhook signature verification, dedupe keys) is pinned by shared test vectors, not shared libraries.
-- GitHub access is a bot account with a **classic** PAT (fine-grained tokens/Apps can't reach user-owned Projects v2); user-owned projects only.
-- Transcripts/summary text must not be stored.
+- [architecture.md](architecture.md): the target design and the source of truth for the rewrite. It covers components, flows, the data model, duplicate detection (§7), the decision log (§15) and the n8n bugs to fix rather than port (§16).
+- [python-refactor-plan.md](python-refactor-plan.md): the remaining Python work, open items, and the infra contract (env vars, SSM parameters, IAM, timeouts) that Terraform must meet.
 
-## Gotchas
+## Commands
 
-- Slack must be acked within 3s; OpenAI webhooks need a quick 2xx — never do slow work inline in the entry-point Lambdas.
-- Slack signature verification must use the raw request body.
-- Known n8n bugs listed in architecture.md §16 (no pagination past 100 project items, `## Summary` vs `## 1. Summary` regex mismatch, wrong `thread_ts` on the slash-command path, racy 10s dedupe window) should be fixed in the rewrite rather than ported.
+Run manually (there is no CI yet): `uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest`. Build the Lambda zips with `uv run python scripts/build.py`.
+
+## Rules that apply to every change
+
+- **Schema naming:** a JSON Schema for information passed from one of our services to another is named `<sending service>_to_<receiving service>` in snake_case (e.g. `summary_posted_to_process_summary.schema.json`). Other schemas keep descriptive names.
+- **Contracts and test vectors:** contracts live in `contracts/` as JSON Schemas with fixtures, so the later Rust ports can pass the same cases. Logic that must exist in both languages is pinned by shared test vectors, not shared libraries.
+- **Never store huddle transcripts or summary text** in our storage (DynamoDB, logs).
+- **Entry-point Lambdas must answer fast:** Slack within 3 s, OpenAI webhooks with a quick 2xx. Do slow work in an asynchronously invoked Lambda. Verify Slack signatures over the raw request body.
