@@ -8,14 +8,14 @@ resolution-markers = [
 
 [manifest]
 members = [
-    "finisher",
     "huddle-ticket-automation",
-    "newproject-worker",
+    "issues-generated",
+    "process-issues",
+    "process-summary",
+    "project-added",
     "python-common",
-    "slack-newproject",
-    "slack-summary",
-    "starter",
-    "webhook",
+    "setup-project",
+    "summary-posted",
 ]
 
 [[package]]
@@ -436,17 +436,6 @@ wheels = [
 ]
 
 [[package]]
-name = "finisher"
-version = "0.1.0"
-source = { virtual = "src/lambdas/finisher" }
-dependencies = [
-    { name = "python-common", extra = ["http", "openai"] },
-]
-
-[package.metadata]
-requires-dist = [{ name = "python-common", extras = ["http", "openai"], virtual = "src/python_common" }]
-
-[[package]]
 name = "h11"
 version = "0.16.0"
 source = { registry = "https://pypi.org/simple" }
@@ -526,13 +515,13 @@ name = "huddle-ticket-automation"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
-    { name = "finisher" },
-    { name = "newproject-worker" },
+    { name = "issues-generated" },
+    { name = "process-issues" },
+    { name = "process-summary" },
+    { name = "project-added" },
     { name = "python-common", extra = ["http", "openai"] },
-    { name = "slack-newproject" },
-    { name = "slack-summary" },
-    { name = "starter" },
-    { name = "webhook" },
+    { name = "setup-project" },
+    { name = "summary-posted" },
 ]
 
 [package.dev-dependencies]
@@ -550,13 +539,13 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "finisher", virtual = "src/lambdas/finisher" },
-    { name = "newproject-worker", virtual = "src/lambdas/newproject_worker" },
+    { name = "issues-generated", virtual = "src/lambdas/issues_generated" },
+    { name = "process-issues", virtual = "src/lambdas/process_issues" },
+    { name = "process-summary", virtual = "src/lambdas/process_summary" },
+    { name = "project-added", virtual = "src/lambdas/project_added" },
     { name = "python-common", extras = ["http", "openai"], virtual = "src/python_common" },
-    { name = "slack-newproject", virtual = "src/lambdas/slack_newproject" },
-    { name = "slack-summary", virtual = "src/lambdas/slack_summary" },
-    { name = "starter", virtual = "src/lambdas/starter" },
-    { name = "webhook", virtual = "src/lambdas/webhook" },
+    { name = "setup-project", virtual = "src/lambdas/setup_project" },
+    { name = "summary-posted", virtual = "src/lambdas/summary_posted" },
 ]
 
 [package.metadata.requires-dev]
@@ -589,6 +578,17 @@ sdist = { url = "https://files.pythonhosted.org/packages/01/e1/2069291243c926a2f
 wheels = [
     { url = "https://files.pythonhosted.org/packages/56/43/4ca9e49d27a1fcf6bece6f6aec0ea46bb9112489b93d4b688fb415457bdb/iniconfig-2.3.1-py3-none-any.whl", hash = "sha256:9121e2c1fdb355232495be3194c8dfe87ccc2d5dee45947b78e68f499790d7a7", size = 7552, upload-time = "2026-10-06T22:48:36.959Z" },
 ]
+
+[[package]]
+name = "issues-generated"
+version = "0.1.0"
+source = { virtual = "src/lambdas/issues_generated" }
+dependencies = [
+    { name = "python-common" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "python-common", virtual = "src/python_common" }]
 
 [[package]]
 name = "jiter"
@@ -943,17 +943,6 @@ wheels = [
 ]
 
 [[package]]
-name = "newproject-worker"
-version = "0.1.0"
-source = { virtual = "src/lambdas/newproject_worker" }
-dependencies = [
-    { name = "python-common", extra = ["http"] },
-]
-
-[package.metadata]
-requires-dist = [{ name = "python-common", extras = ["http"], virtual = "src/python_common" }]
-
-[[package]]
 name = "openai"
 version = "3.57.0"
 source = { registry = "https://pypi.org/simple" }
@@ -996,6 +985,39 @@ sdist = { url = "https://files.pythonhosted.org/packages/bf/db/7fc19e6f2dc92a966
 wheels = [
     { url = "https://files.pythonhosted.org/packages/40/9e/2b38731e0fc536806f16490e1a12d7f0dc2a1235aa8cc07bcc75416a7daa/pluggy-1.7.0-py3-none-any.whl", hash = "sha256:7dd7b0d8832ba3cb632c306926ded123429211b83641b35dc5c41ad2d34f9bec", size = 27082, upload-time = "2026-10-15T09:50:56.808Z" },
 ]
+
+[[package]]
+name = "process-issues"
+version = "0.1.0"
+source = { virtual = "src/lambdas/process_issues" }
+dependencies = [
+    { name = "python-common", extra = ["http", "openai"] },
+]
+
+[package.metadata]
+requires-dist = [{ name = "python-common", extras = ["http", "openai"], virtual = "src/python_common" }]
+
+[[package]]
+name = "process-summary"
+version = "0.1.0"
+source = { virtual = "src/lambdas/process_summary" }
+dependencies = [
+    { name = "python-common", extra = ["http", "openai"] },
+]
+
+[package.metadata]
+requires-dist = [{ name = "python-common", extras = ["http", "openai"], virtual = "src/python_common" }]
+
+[[package]]
+name = "project-added"
+version = "0.1.0"
+source = { virtual = "src/lambdas/project_added" }
+dependencies = [
+    { name = "python-common", extra = ["http"] },
+]
+
+[package.metadata]
+requires-dist = [{ name = "python-common", extras = ["http"], virtual = "src/python_common" }]
 
 [[package]]
 name = "py-partiql-parser"
@@ -1392,18 +1414,9 @@ wheels = [
 ]
 
 [[package]]
-name = "six"
-version = "1.17.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/94/e7/b2c673351809dca68a0e064b6af791aa332cf192da575fd474ed7d6f16a2/six-1.17.0.tar.gz", hash = "sha256:ff70335d468e7eb6ec65b95b99d3a2836546063f63acc5171de367e834932a81", size = 34031, upload-time = "2024-12-04T17:35:28.174Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/b7/ce/149a00dd41f10bc29e5921b496af8b574d8413afcd5e30dfa0ed46c2cc5e/six-1.17.0-py2.py3-none-any.whl", hash = "sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274", size = 11050, upload-time = "2024-12-04T17:35:26.475Z" },
-]
-
-[[package]]
-name = "slack-newproject"
+name = "setup-project"
 version = "0.1.0"
-source = { virtual = "src/lambdas/slack_newproject" }
+source = { virtual = "src/lambdas/setup_project" }
 dependencies = [
     { name = "python-common", extra = ["http"] },
 ]
@@ -1412,15 +1425,13 @@ dependencies = [
 requires-dist = [{ name = "python-common", extras = ["http"], virtual = "src/python_common" }]
 
 [[package]]
-name = "slack-summary"
-version = "0.1.0"
-source = { virtual = "src/lambdas/slack_summary" }
-dependencies = [
-    { name = "python-common" },
+name = "six"
+version = "1.17.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/94/e7/b2c673351809dca68a0e064b6af791aa332cf192da575fd474ed7d6f16a2/six-1.17.0.tar.gz", hash = "sha256:ff70335d468e7eb6ec65b95b99d3a2836546063f63acc5171de367e834932a81", size = 34031, upload-time = "2024-12-04T17:35:28.174Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b7/ce/149a00dd41f10bc29e5921b496af8b574d8413afcd5e30dfa0ed46c2cc5e/six-1.17.0-py2.py3-none-any.whl", hash = "sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274", size = 11050, upload-time = "2024-12-04T17:35:26.475Z" },
 ]
-
-[package.metadata]
-requires-dist = [{ name = "python-common", virtual = "src/python_common" }]
 
 [[package]]
 name = "sniffio"
@@ -1432,15 +1443,15 @@ wheels = [
 ]
 
 [[package]]
-name = "starter"
+name = "summary-posted"
 version = "0.1.0"
-source = { virtual = "src/lambdas/starter" }
+source = { virtual = "src/lambdas/summary_posted" }
 dependencies = [
-    { name = "python-common", extra = ["http", "openai"] },
+    { name = "python-common" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "python-common", extras = ["http", "openai"], virtual = "src/python_common" }]
+requires-dist = [{ name = "python-common", virtual = "src/python_common" }]
 
 [[package]]
 name = "truststore"
@@ -1489,17 +1500,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/e3/05/b17359e1cefb4f909
 wheels = [
     { url = "https://files.pythonhosted.org/packages/92/9d/c4e665119135114480843e7ab388fa94d8480650450e6f8e26b70d323a4c/urllib3-2.8.0-py3-none-any.whl", hash = "sha256:0cf3cae568d36aa9576b28dfb35f11328f1cb974ca7647d9475ebb86c75ac6e3", size = 135717, upload-time = "2026-09-15T19:29:34.577Z" },
 ]
-
-[[package]]
-name = "webhook"
-version = "0.1.0"
-source = { virtual = "src/lambdas/webhook" }
-dependencies = [
-    { name = "python-common" },
-]
-
-[package.metadata]
-requires-dist = [{ name = "python-common", virtual = "src/python_common" }]
 
 [[package]]
 name = "werkzeug"

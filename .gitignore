@@ -89,3 +89,6 @@ debug/
 target/
 **/*.rs.bk
 *.pdb
+
+# Codegraph
+.codegraph/

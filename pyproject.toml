@@ -5,13 +5,13 @@ description = "Slack huddle summaries to de-duplicated GitHub Project draft item
 requires-python = ">=3.14"
 # Depending on every member makes a plain `uv sync` install all runtime libraries for tests and mypy.
 dependencies = [
-    "finisher",
-    "newproject-worker",
+    "issues-generated",
+    "process-issues",
+    "process-summary",
+    "project-added",
     "python-common[http,openai]",
-    "slack-newproject",
-    "slack-summary",
-    "starter",
-    "webhook",
+    "setup-project",
+    "summary-posted",
 ]
 
 [dependency-groups]
@@ -34,13 +34,13 @@ package = false
 members = ["src/python_common", "src/lambdas/*"]
 
 [tool.uv.sources]
-finisher = { workspace = true }
-newproject-worker = { workspace = true }
+issues-generated = { workspace = true }
+process-issues = { workspace = true }
+process-summary = { workspace = true }
+project-added = { workspace = true }
 python-common = { workspace = true }
-slack-newproject = { workspace = true }
-slack-summary = { workspace = true }
-starter = { workspace = true }
-webhook = { workspace = true }
+setup-project = { workspace = true }
+summary-posted = { workspace = true }
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
