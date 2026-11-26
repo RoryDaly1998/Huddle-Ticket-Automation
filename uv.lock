@@ -8,8 +8,10 @@ resolution-markers = [
 
 [manifest]
 members = [
+    "check-stale-jobs",
     "huddle-ticket-automation",
     "issues-generated",
+    "job-failed",
     "process-issues",
     "process-summary",
     "project-added",
@@ -350,6 +352,17 @@ wheels = [
 ]
 
 [[package]]
+name = "check-stale-jobs"
+version = "0.1.0"
+source = { virtual = "src/lambdas/check_stale_jobs" }
+dependencies = [
+    { name = "python-common", extra = ["openai"] },
+]
+
+[package.metadata]
+requires-dist = [{ name = "python-common", extras = ["openai"], virtual = "src/python_common" }]
+
+[[package]]
 name = "colorama"
 version = "0.4.6"
 source = { registry = "https://pypi.org/simple" }
@@ -515,7 +528,9 @@ name = "huddle-ticket-automation"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "check-stale-jobs" },
     { name = "issues-generated" },
+    { name = "job-failed" },
     { name = "process-issues" },
     { name = "process-summary" },
     { name = "project-added" },
@@ -539,7 +554,9 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "check-stale-jobs", virtual = "src/lambdas/check_stale_jobs" },
     { name = "issues-generated", virtual = "src/lambdas/issues_generated" },
+    { name = "job-failed", virtual = "src/lambdas/job_failed" },
     { name = "process-issues", virtual = "src/lambdas/process_issues" },
     { name = "process-summary", virtual = "src/lambdas/process_summary" },
     { name = "project-added", virtual = "src/lambdas/project_added" },
@@ -661,6 +678,17 @@ sdist = { url = "https://files.pythonhosted.org/packages/d3/59/322338183ecda247f
 wheels = [
     { url = "https://files.pythonhosted.org/packages/14/2f/967ba146e6d58cf6a652da73885f52fc68001525b4197effc174321d70b4/jmespath-1.1.0-py3-none-any.whl", hash = "sha256:a5663118de4908c91729bea0acadca56526eb2698e83de10cd116ae0f4e97c64", size = 20419, upload-time = "2026-01-22T16:35:24.919Z" },
 ]
+
+[[package]]
+name = "job-failed"
+version = "0.1.0"
+source = { virtual = "src/lambdas/job_failed" }
+dependencies = [
+    { name = "python-common", extra = ["http"] },
+]
+
+[package.metadata]
+requires-dist = [{ name = "python-common", extras = ["http"], virtual = "src/python_common" }]
 
 [[package]]
 name = "jsonschema"

@@ -31,7 +31,6 @@ Follow every rule below when writing new tests or refactoring existing ones. The
   - `src/python_common/stores/job_store.py` → `tests/python_common/stores/test_job_store.py`
   - `src/lambdas/summary_posted/handler.py` → `tests/lambdas/summary_posted/test_handler.py`
   - `scripts/build.py` → `tests/scripts/test_build.py`
-- Contract and test-vector tests are unit tests of the module they exercise, so they go in that module's mirrored test file.
 - Do not add `__init__.py` files under `tests/`. Import helpers by their full path from the repository root, e.g. `from tests.lambdas.summary_posted.helpers import build_event`; a bare `from helpers import ...` does not work in `importlib` mode. (Tested with pytest 9.2: in the default import mode, two `test_handler.py` files in different directories fail with "import file mismatch" unless the directories are packages. `importlib` mode avoids that without `__init__.py` files. Tests importing from a `helpers.py` need the full path because a bare import fails in `importlib` mode.)
 - Tests have no docstrings or type hints, so if ruff's `D` (pydocstyle) or `ANN` (annotations) rules are enabled, add them to `[tool.ruff.lint.per-file-ignores]` for `"tests/**"`. Do the same for `S101` (assert) if bandit rules are enabled.
 
