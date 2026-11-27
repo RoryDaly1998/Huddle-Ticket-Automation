@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RuntimeErrorToProcessFailedEvents",
+  "description": "Message sent to the failed-events SQS queue, read by job-failed, for a failure one of our Lambdas recognises: a permanent error in process-summary, process-issues or setup-project, or a stale job found by check-stale-jobs. The same queue also carries the Lambda service's on-failure records (service_error_to_process_failed_events). It never holds summary text, invocation payloads or raw error messages.",
+  "type": "object",
+  "properties": {
+    "id": {
+      "description": "The job ID; for setup-project, which has no job, the asynchronous invocation's request ID.",
+      "type": "string",
+      "pattern": "^\\S+$"
+    },
+    "sender": {
+      "description": "The Lambda reporting the failure.",
+      "enum": [
+        "process-summary",
+        "process-issues",
+        "setup-project",
+        "check-stale-jobs"
+      ]
+    },
+    "reason": {
+      "description": "A short code without whitespace, e.g. github_forbidden, generation_failed or stale_received.",
+      "type": "string",
+      "pattern": "^\\S+$"
+    },
+    "channel_id": {
+      "description": "The Slack channel to tell about the failure.",
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9]+$"
+    },
+    "thread_ts": {
+      "description": "The thread to reply in, if known; otherwise absent or null.",
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[0-9]+(\\.[0-9]+)?$"
+    }
+  },
+  "required": [
+    "id",
+    "sender",
+    "reason",
+    "channel_id"
+  ],
+  "additionalProperties": false
+}

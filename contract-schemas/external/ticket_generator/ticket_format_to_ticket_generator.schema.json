@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Draft tickets extracted from one meeting summary.",
+  "type": "object",
+  "properties": {
+    "issues": {
+      "description": "The distinct action items agreed in the meeting, one ticket each. Empty when the meeting has no action items.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "description": "A crisp, concise title for the task, in plain text.",
+            "type": "string",
+            "pattern": "\\S"
+          },
+          "summary": {
+            "description": "One to three plain sentences stating what the task is and why it is needed, written as a single line with no line breaks. Start it with a word, not with a space or `#`. Duplicate detection compares tickets by this field.",
+            "type": "string",
+            "pattern": "^[^\\t\\n\\v\\f\\r #][^\\r\\n]*$"
+          },
+          "body": {
+            "description": "The markdown body of the draft ticket, made up of the sections listed in these instructions. It must start with the `## Problem Statement` heading, with nothing before it.",
+            "type": "string",
+            "pattern": "^#"
+          }
+        },
+        "required": ["title", "summary", "body"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["issues"],
+  "additionalProperties": false
+}

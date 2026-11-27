@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SummaryResponseToSlack",
+  "description": "summary-posted's reply to a slash command (HTTP 200, application/json), exactly as sent: text shown to the user who ran the command (ephemeral) or to the whole channel (in_channel). The acknowledgement of a started /meetingsummary job is in_channel and its text holds the marker \"(job <reference>)\": process-summary finds the acknowledgement again in channel history by that marker (job_reference in handoff_to_process_summary). The other replies are for a command that is not /meetingsummary, a /meetingsummary without text, and a summary that is too long to process. project-added also sends ephemeral replies of this shape to /setup (an unknown command, or a modal that could not be opened); architecture §8 lists no schema of their own for them.",
+  "type": "object",
+  "properties": {
+    "response_type": {
+      "enum": [
+        "ephemeral",
+        "in_channel"
+      ]
+    },
+    "text": {
+      "description": "The message.",
+      "type": "string",
+      "pattern": "\\S"
+    }
+  },
+  "required": [
+    "response_type",
+    "text"
+  ],
+  "additionalProperties": false
+}

@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "HandoffToSetupProject",
+  "description": "Asynchronous invocation payload sent by project-added to setup-project after the setup modal is submitted. The URLs are passed as entered; setup-project parses and validates them.",
+  "type": "object",
+  "properties": {
+    "channel_id": {
+      "description": "The channel /setup was run in (carried in the modal's private_metadata).",
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9]+$"
+    },
+    "user_id": {
+      "description": "The user who submitted the modal.",
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9]+$"
+    },
+    "project_url": {
+      "description": "GitHub Project URL as entered.",
+      "type": "string",
+      "minLength": 1
+    },
+    "repo_url": {
+      "description": "GitHub repository URL as entered.",
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "required": [
+    "channel_id",
+    "user_id",
+    "project_url",
+    "repo_url"
+  ],
+  "additionalProperties": false
+}

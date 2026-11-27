@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "HandoffToProcessSummary",
+  "description": "Asynchronous invocation payload sent by summary-posted to process-summary. The huddle path carries IDs only (process-summary resolves the thread with files.info); the manual path carries the summary text and what process-summary needs to find summary-posted's in-channel ack with conversations.history.",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/huddle_handoff"
+    },
+    {
+      "$ref": "#/$defs/manual_handoff"
+    }
+  ],
+  "discriminator": {
+    "propertyName": "source",
+    "mapping": {
+      "huddle": "#/$defs/huddle_handoff",
+      "manual": "#/$defs/manual_handoff"
+    }
+  },
+  "$defs": {
+    "huddle_handoff": {
+      "description": "A Slack-generated huddle summary file was shared.",
+      "type": "object",
+      "properties": {
+        "source": {
+          "const": "huddle"
+        },
+        "job_id": {
+          "description": "The Slack file ID (equal to file_id).",
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9]+$"
+        },
+        "file_id": {
+          "description": "A Slack ID such as a channel, user or file ID.",
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9]+$"
+        },
+        "channel_id": {
+          "description": "A Slack ID such as a channel, user or file ID.",
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9]+$"
+        },
+        "user_id": {
+          "description": "The user who shared the file (USLACKBOT for huddle summaries).",
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9]+$"
+        },
+        "event_ts": {
+          "description": "The file_shared event's event_ts.",
+          "type": "string",
+          "pattern": "^[0-9]+(\\.[0-9]+)?$"
+        }
+      },
+      "required": [
+        "source",
+        "job_id",
+        "file_id",
+        "channel_id",
+        "user_id",
+        "event_ts"
+      ],
+      "additionalProperties": false
+    },
+    "manual_handoff": {
+      "description": "A user ran /meetingsummary with the summary text. There is no thread_ts: process-summary finds the ack later and may fall back to channel level.",
+      "type": "object",
+      "properties": {
+        "source": {
+          "const": "manual"
+        },
+        "job_id": {
+          "description": "Lowercase hex SHA-256 of channel_id + ':' + trigger_id (architecture §6).",
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "channel_id": {
+          "description": "A Slack ID such as a channel, user or file ID.",
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9]+$"
+        },
+        "user_id": {
+          "description": "The user who ran the command.",
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9]+$"
+        },
+        "command_ts": {
+          "description": "When the command was sent (the X-Slack-Request-Timestamp header); process-summary searches channel history from here.",
+          "type": "string",
+          "pattern": "^[0-9]+(\\.[0-9]+)?$"
+        },
+        "summary_text": {
+          "description": "The meeting summary entered by the user. Never stored or logged.",
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "job_reference": {
+          "description": "Short reference derived from job_id that summary-posted puts in its in-channel ack, so process-summary can find the ack.",
+          "type": "string",
+          "pattern": "^\\S+$"
+        }
+      },
+      "required": [
+        "source",
+        "job_id",
+        "channel_id",
+        "user_id",
+        "command_ts",
+        "summary_text",
+        "job_reference"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

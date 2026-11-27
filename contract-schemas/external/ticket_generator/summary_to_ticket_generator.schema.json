@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SummaryToTicketGenerator",
+  "description": "Body of the OpenAI Responses API request (POST /v1/responses) that process-summary sends to start ticket extraction, exactly as sent: the versioned prompt as instructions, the meeting summary as input, a stored background response, and the ticket format as a strict structured-output format. The response is receipt_id_to_process_summary.",
+  "type": "object",
+  "properties": {
+    "model": {
+      "description": "Generation model name (from SSM).",
+      "type": "string",
+      "pattern": "^\\S+$"
+    },
+    "instructions": {
+      "description": "The versioned ticket-extraction prompt (prompts/ticket_extraction_v1.md).",
+      "type": "string",
+      "pattern": "\\S"
+    },
+    "input": {
+      "description": "The meeting summary text.",
+      "type": "string"
+    },
+    "text": {
+      "description": "Output settings: strict structured output.",
+      "type": "object",
+      "properties": {
+        "format": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "json_schema"
+            },
+            "name": {
+              "description": "Name of the output format, as OpenAI requires.",
+              "const": "ticket_extraction"
+            },
+            "schema": {
+              "description": "The ticket_format_to_ticket_generator schema, exactly as in that file but without its $schema keyword. Strict mode needs a plain root schema, so it is sent verbatim (architecture decision 26). A JSON Schema cannot say \"equals another file\", so tests compare it with the file.",
+              "type": "object"
+            },
+            "strict": {
+              "const": true
+            }
+          },
+          "required": [
+            "type",
+            "name",
+            "schema",
+            "strict"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "format"
+      ],
+      "additionalProperties": false
+    },
+    "background": {
+      "description": "Run in background mode: OpenAI answers at once and calls the webhook when done.",
+      "const": true
+    },
+    "store": {
+      "description": "Keep the response so it can be retrieved however late the webhook arrives.",
+      "const": true
+    }
+  },
+  "required": [
+    "model",
+    "instructions",
+    "input",
+    "text",
+    "background",
+    "store"
+  ],
+  "additionalProperties": false
+}

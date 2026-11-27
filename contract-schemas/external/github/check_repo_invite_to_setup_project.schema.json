@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CheckRepoInviteToSetupProject",
+  "description": "The response to check_repo_invite_to_github: one page of the bot's pending invitations. The next page, if any, is in the Link header. Only the fields read are described; every other field is allowed and ignored.",
+  "type": "array",
+  "items": {
+    "$ref": "#/$defs/invitation"
+  },
+  "$defs": {
+    "invitation": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "description": "The invitation, as accepted by PATCH.",
+          "type": "integer"
+        },
+        "repository": {
+          "type": "object",
+          "properties": {
+            "full_name": {
+              "description": "owner/name of the repository the invitation is for.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "full_name"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "repository"
+      ]
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "UrlVerificationToSlackWebhook",
+  "description": "Slack's handshake when the Events request URL is set, as summary-posted reads it from an Events API body (application/json) after the signature check over the raw body. Only the fields read are described; every other field is allowed and ignored.",
+  "type": "object",
+  "properties": {
+    "type": {
+      "type": "string",
+      "const": "url_verification"
+    },
+    "challenge": {
+      "description": "Echoed back in the response body as {\"challenge\": ...}.",
+      "type": "string"
+    }
+  },
+  "required": [
+    "type",
+    "challenge"
+  ]
+}

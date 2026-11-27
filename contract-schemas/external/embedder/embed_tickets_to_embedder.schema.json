@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "EmbedTicketsToEmbedder",
+  "description": "Body of POST /v1/embeddings, the embeddings request process-issues sends for one batch of embed texts (architecture §7), exactly as sent. A batch is at most 2,048 texts whose UTF-8 lengths add up to at most 300,000 bytes, a safe bound on the API's per-request token limit; the API key goes in the Authorization header.",
+  "type": "object",
+  "properties": {
+    "input": {
+      "description": "The embed texts, in order; the response holds one vector per text. Never logged or stored.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "maxItems": 2048
+    },
+    "model": {
+      "description": "The embedding model.",
+      "type": "string",
+      "minLength": 1
+    },
+    "dimensions": {
+      "description": "How many values each vector has.",
+      "type": "integer",
+      "minimum": 1
+    },
+    "encoding_format": {
+      "description": "Vectors come back as JSON numbers.",
+      "const": "float"
+    }
+  },
+  "required": [
+    "input",
+    "model",
+    "dimensions",
+    "encoding_format"
+  ],
+  "additionalProperties": false
+}

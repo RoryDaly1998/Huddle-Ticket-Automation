@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CheckRepoVisibleToGithub",
+  "description": "setup-project: check that the bot can see a repository. A POST /graphql whose JSON body is this, exactly as sent: the operation text byte for byte, plus its variables (values are never written into the operation text). The token goes in the Authorization header with Accept: application/vnd.github+json and X-GitHub-Api-Version: 2022-11-28.",
+  "type": "object",
+  "properties": {
+    "query": {
+      "const": "\nquery Repository($owner: String!, $name: String!) {\n  repository(owner: $owner, name: $name) { id }\n}\n"
+    },
+    "variables": {
+      "type": "object",
+      "properties": {
+        "owner": {
+          "description": "The repository owner, from the repository URL.",
+          "type": "string"
+        },
+        "name": {
+          "description": "The repository name, from the repository URL.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "owner",
+        "name"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "query",
+    "variables"
+  ],
+  "additionalProperties": false
+}

@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "FailedEventsToDbFailedEventsStore",
+  "description": "A record in the DynamoDB failed_jobs table, the permanent failure log written only by job-failed, one per failure. It has no TTL. Summary text, invocation payloads and raw error messages are never stored here.",
+  "type": "object",
+  "properties": {
+    "id": {
+      "description": "The table's key: the job ID, or for setup-project, which has no job, the asynchronous invocation's request ID. Rows are created only if the key is new, so each failure is handled once.",
+      "type": "string",
+      "pattern": "^\\S+$"
+    },
+    "sender": {
+      "description": "The Lambda that reported the failure or whose invocation failed.",
+      "enum": [
+        "process-summary",
+        "process-issues",
+        "setup-project",
+        "check-stale-jobs"
+      ]
+    },
+    "reason": {
+      "description": "A short code without whitespace: a worker's error code (e.g. github_forbidden), <condition>:<errorType> for a failed invocation (e.g. RetriesExhausted:GitHubUnavailable), or stale_<status>.",
+      "type": "string",
+      "pattern": "^\\S+$"
+    },
+    "channel_id": {
+      "description": "The Slack channel the failure message is for.",
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9]+$"
+    },
+    "thread_ts": {
+      "description": "The thread the failure message is for, only if known; otherwise absent or null.",
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[0-9]+(\\.[0-9]+)?$"
+    },
+    "failed_at": {
+      "description": "Unix seconds when job-failed logged the failure.",
+      "type": "integer",
+      "minimum": 0
+    },
+    "message_sent": {
+      "description": "False when the row is created; true once Slack accepts the failure message. A failed post leaves it false and is not retried.",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "id",
+    "sender",
+    "reason",
+    "channel_id",
+    "failed_at",
+    "message_sent"
+  ],
+  "additionalProperties": false
+}

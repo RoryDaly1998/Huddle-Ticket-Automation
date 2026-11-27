@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "UpdateJobToDbJobs",
+  "description": "A conditional UpdateItem of one row of the DynamoDB jobs table: the key (job_id) and the attributes the write changes. A number or string sets the attribute; null removes it (a released lease). The writes made are: generating (status, response_id, project_id and, if known, thread_ts), finishing (status, finishing_started_at), completed (status), failed (status, error; by job-failed only), release of the claim lease (claimed_at: null) and release of the finishing lease (finishing_started_at: null). The conditions on the current status and leases are not part of this payload.",
+  "type": "object",
+  "minProperties": 2,
+  "properties": {
+    "job_id": {
+      "description": "Huddle path: the Slack file ID. Manual path: lowercase hex SHA-256 (architecture §6).",
+      "type": "string",
+      "pattern": "^([A-Z][A-Z0-9]+|[0-9a-f]{64})$"
+    },
+    "status": {
+      "enum": [
+        "generating",
+        "finishing",
+        "completed",
+        "failed"
+      ]
+    },
+    "response_id": {
+      "description": "OpenAI background response ID (indexed by a GSI).",
+      "type": "string",
+      "pattern": "^\\S+$"
+    },
+    "project_id": {
+      "description": "GitHub Project node ID.",
+      "type": "string",
+      "pattern": "^\\S+$"
+    },
+    "thread_ts": {
+      "description": "Where to reply.",
+      "type": "string",
+      "pattern": "^[0-9]+(\\.[0-9]+)?$"
+    },
+    "error": {
+      "description": "Failure reason.",
+      "type": "string",
+      "pattern": "\\S"
+    },
+    "finishing_started_at": {
+      "description": "Unix seconds when the process-issues lease started; null releases it.",
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "claimed_at": {
+      "description": "Null releases the process-summary claim lease.",
+      "type": "null"
+    }
+  },
+  "required": [
+    "job_id"
+  ],
+  "additionalProperties": false
+}

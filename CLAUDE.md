@@ -8,12 +8,12 @@ Slack huddle summaries → LLM-extracted action items → de-duplicated against 
 
 The only deployed implementation is the **n8n workflows** in `n8n-workflows/` (set up per [README.md](README.md)). A Python/AWS rewrite lives under `src/`, `tests/`, `contracts/`, `prompts/` and `scripts/`; Terraform does not exist yet.
 
-The code still implements the previous design (eight Lambdas, hand-written models). The target is seven Lambdas: `slack_webhook` and `ticket_generator_webhook` (API Gateway entry points), `process_summary`, `process_tickets` and `setup_project` (asynchronously invoked workers), `process_failed_events` (fed by `failed_events_queue`) and `process_stuck_jobs` (EventBridge Scheduler, every 15 minutes). [python-refactor-plan.md](python-refactor-plan.md) lists the migration steps in order.
+The code still implements the previous design (eight Lambdas, hand-written models). The target is seven Lambdas: `slack_webhook` and `ticket_generator_webhook` (API Gateway entry points), `process_summary`, `process_tickets` and `setup_project` (asynchronously invoked workers), `process_failed_events` (fed by `failed_events_queue`) and `process_stuck_jobs` (EventBridge Scheduler, every 15 minutes). [python-refactor-plan.md](docs/python-refactor-plan.md) lists the migration steps in order.
 
 ## Where to look
 
-- [architecture.md](architecture.md): the target design and the source of truth. Contracts and naming are §8, failures §5.5, the decision log §15.
-- [python-refactor-plan.md](python-refactor-plan.md): the migration work list, open items, and the infra contract Terraform must meet.
+- [architecture.md](docs/architecture.md): the target design and the source of truth. Contracts and naming are §8, failures §5.5, the decision log §15.
+- [python-refactor-plan.md](docs/python-refactor-plan.md): the migration work list, open items, and the infra contract Terraform must meet.
 
 ## Commands
 

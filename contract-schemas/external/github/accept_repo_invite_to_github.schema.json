@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AcceptRepoInviteToGithub",
+  "description": "setup-project: the path parameter of PATCH /user/repository_invitations/{invitation_id}, which accepts a pending invitation. The request has no body. The token goes in the Authorization header with Accept: application/vnd.github+json and X-GitHub-Api-Version: 2022-11-28.",
+  "type": "object",
+  "properties": {
+    "invitation_id": {
+      "description": "The invitation's id, from the invitations list.",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "invitation_id"
+  ],
+  "additionalProperties": false
+}

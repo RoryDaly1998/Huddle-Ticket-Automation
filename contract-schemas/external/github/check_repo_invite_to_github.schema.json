@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CheckRepoInviteToGithub",
+  "description": "setup-project: the query parameters of the first page of GET /user/repository_invitations, exactly as sent, written as an object of strings. Later pages follow the Link header's next URL as given. The request has no body. The token goes in the Authorization header with Accept: application/vnd.github+json and X-GitHub-Api-Version: 2022-11-28.",
+  "type": "object",
+  "properties": {
+    "per_page": {
+      "description": "The page size.",
+      "const": "100"
+    }
+  },
+  "required": [
+    "per_page"
+  ],
+  "additionalProperties": false
+}

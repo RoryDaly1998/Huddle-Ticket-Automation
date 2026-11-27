@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GetTicketsToTicketGenerator",
+  "description": "The path parameter of GET /v1/responses/{response_id}, the request process-issues sends to retrieve a finished background response and its tickets. The request has no body. The response is tickets_to_process_tickets.",
+  "type": "object",
+  "properties": {
+    "response_id": {
+      "description": "The background response's ID.",
+      "type": "string",
+      "pattern": "^\\S+$"
+    }
+  },
+  "required": [
+    "response_id"
+  ],
+  "additionalProperties": false
+}

@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "FileInfoToSlack",
+  "description": "The query parameters of the Slack Web API call files.info (a GET), exactly as sent, written as an object of strings: a shared file's details and shares. The bot token goes in the Authorization header.",
+  "type": "object",
+  "properties": {
+    "file": {
+      "description": "The file ID.",
+      "type": "string"
+    }
+  },
+  "required": [
+    "file"
+  ],
+  "additionalProperties": false
+}

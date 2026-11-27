@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ServiceErrorToProcessFailedEvents",
+  "description": "The on-failure destination record the AWS Lambda service sends to the failed-events SQS queue, read by job-failed, when an asynchronous invocation of process-summary, process-issues or setup-project fails for good: its retries run out, it times out or crashes, or the event passes its maximum age. Only the fields job-failed reads are described; every other field is allowed and ignored. The record's shape and its condition values are not yet confirmed against a deployed function.",
+  "type": "object",
+  "properties": {
+    "requestContext": {
+      "type": "object",
+      "properties": {
+        "requestId": {
+          "description": "The asynchronous invocation's request ID; it identifies a setup-project failure, which has no job.",
+          "type": "string",
+          "pattern": "^\\S+$"
+        },
+        "condition": {
+          "description": "Why Lambda gave up, e.g. RetriesExhausted.",
+          "type": "string",
+          "pattern": "^\\S+$"
+        },
+        "functionArn": {
+          "description": "The ARN of the function that failed.",
+          "type": "string",
+          "pattern": "^\\S+$"
+        }
+      },
+      "required": [
+        "requestId",
+        "condition",
+        "functionArn"
+      ]
+    },
+    "requestPayload": {
+      "description": "The failed invocation's payload, as the function received it (handoff_to_process_summary, handoff_to_process_tickets or handoff_to_setup_project). It may hold summary text, so it is never stored or logged.",
+      "type": "object"
+    },
+    "responsePayload": {
+      "description": "The function's error. Absent or null if there is none to report, e.g. possibly when the event expired.",
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "errorType": {
+              "description": "The error's type, e.g. an exception class name such as LeaseHeld. Absent or null if Lambda reports none.",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "requestContext",
+    "requestPayload"
+  ]
+}

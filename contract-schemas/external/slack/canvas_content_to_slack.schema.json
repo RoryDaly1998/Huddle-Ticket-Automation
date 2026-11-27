@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CanvasContentToSlack",
+  "description": "The JSON body of the Slack Web API call canvases.getContent (a POST), exactly as sent: a huddle summary canvas as markdown. The bot token goes in the Authorization header.",
+  "type": "object",
+  "properties": {
+    "canvas_id": {
+      "description": "The canvas; the shared file's ID.",
+      "type": "string"
+    },
+    "content_type": {
+      "const": "markdown"
+    }
+  },
+  "required": [
+    "canvas_id",
+    "content_type"
+  ],
+  "additionalProperties": false
+}

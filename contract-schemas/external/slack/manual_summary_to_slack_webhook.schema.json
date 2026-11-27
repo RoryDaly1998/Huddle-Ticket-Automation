@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ManualSummaryToSlackWebhook",
+  "description": "A slash command posted to summary-posted, decoded from its form body (application/x-www-form-urlencoded; if a key repeats, its last value wins) after the signature check over the raw body. Only /meetingsummary with non-blank text starts a manual job; any other command, or blank text, gets a private reply. Only the fields read are described; every other field is allowed and ignored.",
+  "type": "object",
+  "properties": {
+    "command": {
+      "description": "The command, e.g. /meetingsummary.",
+      "type": "string"
+    },
+    "text": {
+      "description": "Everything after the command: the pasted meeting summary. Never logged or stored.",
+      "type": "string"
+    },
+    "channel_id": {
+      "description": "The channel the command was run in.",
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9]+$"
+    },
+    "user_id": {
+      "description": "Who ran the command.",
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9]+$"
+    },
+    "trigger_id": {
+      "description": "Unique per command run; part of the manual job ID.",
+      "type": "string"
+    }
+  },
+  "required": [
+    "command",
+    "text",
+    "channel_id",
+    "user_id",
+    "trigger_id"
+  ]
+}

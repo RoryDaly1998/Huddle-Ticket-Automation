@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TicketsToProcessTickets",
+  "description": "A retrieved OpenAI Response (the response to get_tickets_to_ticket_generator), as process-issues reads it. The tickets are JSON text inside the output, in the ticket_format_to_ticket_generator format, which is referred to rather than nested. Only the fields read are described; every other field is allowed and ignored.",
+  "type": "object",
+  "properties": {
+    "status": {
+      "description": "The response's status; one without a status is a generation error.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "queued",
+            "in_progress",
+            "completed",
+            "failed",
+            "cancelled",
+            "incomplete"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "output": {
+      "description": "What the model produced; empty when missing. Read only once the status is completed, when its output text must match ticket_format_to_ticket_generator (an empty text, as after a refusal, does not).",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/output_item"
+      },
+      "default": []
+    }
+  },
+  "$defs": {
+    "output_item": {
+      "type": "object",
+      "description": "One item of the response's output.",
+      "properties": {
+        "type": {
+          "description": "Only items of type message carry content.",
+          "type": "string"
+        },
+        "content": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/content_part"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    "content_part": {
+      "type": "object",
+      "description": "One part of an output message.",
+      "properties": {
+        "type": {
+          "description": "Only parts of type output_text carry text.",
+          "type": "string"
+        },
+        "text": {
+          "description": "The text of an output_text part. The texts of every output_text part of every message, joined in order, are the output text: JSON in the ticket format.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "contentMediaType": "application/json",
+          "contentSchema": {
+            "$ref": "ticket_format_to_ticket_generator.schema.json"
+          }
+        }
+      },
+      "required": [
+        "type"
+      ]
+    }
+  }
+}

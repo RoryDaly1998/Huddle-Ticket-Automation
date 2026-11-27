@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "EmbeddingsToProcessTickets",
+  "description": "The embeddings response to an embed_tickets_to_embedder request, as read by process-issues. Only the fields process-issues reads are described; every other field is allowed and ignored. A response that does not match, or whose indexes are not exactly 0 to n - 1 for n inputs, or whose vectors do not have the requested number of values, is an embedding failure: duplicate detection then fails open for the batch.",
+  "type": "object",
+  "properties": {
+    "data": {
+      "description": "One entry per input, matched to its input by index (in any order).",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "index": {
+            "description": "The input this vector is for, counted from 0.",
+            "type": "integer"
+          },
+          "embedding": {
+            "description": "The vector.",
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          }
+        },
+        "required": [
+          "index",
+          "embedding"
+        ]
+      }
+    }
+  },
+  "required": [
+    "data"
+  ]
+}

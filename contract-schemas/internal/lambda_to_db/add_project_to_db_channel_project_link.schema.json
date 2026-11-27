@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AddProjectToDbChannelProjectLink",
+  "description": "The UpdateItem setup-project makes on the DynamoDB channel_project_link table to link a channel to a project, creating the row or replacing only its project_id.",
+  "type": "object",
+  "properties": {
+    "channel_id": {
+      "description": "The table's key: the Slack channel.",
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9]+$"
+    },
+    "project_id": {
+      "description": "The GitHub Project's node ID.",
+      "type": "string",
+      "pattern": "^\\S+$"
+    }
+  },
+  "required": [
+    "channel_id",
+    "project_id"
+  ],
+  "additionalProperties": false
+}

@@ -1,0 +1,270 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SetupFormToSlack",
+  "description": "The JSON body of the Slack Web API call views.open (a POST), exactly as sent: the setup modal, opened for a /setup command. The bot token goes in the Authorization header.",
+  "type": "object",
+  "properties": {
+    "trigger_id": {
+      "description": "The /setup command's trigger_id.",
+      "type": "string"
+    },
+    "view": {
+      "$ref": "#/$defs/setup_modal_view"
+    }
+  },
+  "required": [
+    "trigger_id",
+    "view"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "setup_modal_view": {
+      "description": "The setup modal. Its callback_id, block IDs and action IDs are how project-added recognises the submission and reads its inputs back (see setup_form_to_slack_webhook). Length limits are Slack's.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "modal"
+        },
+        "callback_id": {
+          "const": "setup_project"
+        },
+        "private_metadata": {
+          "description": "The channel /setup ran in, as compact JSON text: Slack's view_submission payload has no channel.",
+          "type": "string",
+          "pattern": "^\\{\"channel_id\":\"[A-Z][A-Z0-9]+\"\\}$",
+          "maxLength": 3000
+        },
+        "title": {
+          "$ref": "#/$defs/modal_button_text"
+        },
+        "submit": {
+          "$ref": "#/$defs/modal_button_text"
+        },
+        "close": {
+          "$ref": "#/$defs/modal_button_text"
+        },
+        "blocks": {
+          "description": "An introduction, then the project URL input, then the repository URL input.",
+          "type": "array",
+          "prefixItems": [
+            {
+              "$ref": "#/$defs/section_block"
+            },
+            {
+              "$ref": "#/$defs/project_url_input_block"
+            },
+            {
+              "$ref": "#/$defs/repo_url_input_block"
+            }
+          ],
+          "minItems": 3,
+          "items": false
+        }
+      },
+      "required": [
+        "type",
+        "callback_id",
+        "private_metadata",
+        "title",
+        "submit",
+        "close",
+        "blocks"
+      ],
+      "additionalProperties": false
+    },
+    "modal_button_text": {
+      "description": "A modal's title, submit or close label.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "plain_text"
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 24
+        }
+      },
+      "required": [
+        "type",
+        "text"
+      ],
+      "additionalProperties": false
+    },
+    "section_block": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "section"
+        },
+        "text": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "mrkdwn"
+            },
+            "text": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 3000
+            }
+          },
+          "required": [
+            "type",
+            "text"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "type",
+        "text"
+      ],
+      "additionalProperties": false
+    },
+    "project_url_input_block": {
+      "description": "The required single-line plain-text input of the project_url block.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "input"
+        },
+        "block_id": {
+          "const": "project_url"
+        },
+        "label": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "plain_text"
+            },
+            "text": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000
+            }
+          },
+          "required": [
+            "type",
+            "text"
+          ],
+          "additionalProperties": false
+        },
+        "element": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "plain_text_input"
+            },
+            "action_id": {
+              "const": "project_url_input"
+            },
+            "placeholder": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "const": "plain_text"
+                },
+                "text": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 150
+                }
+              },
+              "required": [
+                "type",
+                "text"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "type",
+            "action_id",
+            "placeholder"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "type",
+        "block_id",
+        "label",
+        "element"
+      ],
+      "additionalProperties": false
+    },
+    "repo_url_input_block": {
+      "description": "The required single-line plain-text input of the repo_url block.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "input"
+        },
+        "block_id": {
+          "const": "repo_url"
+        },
+        "label": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "plain_text"
+            },
+            "text": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000
+            }
+          },
+          "required": [
+            "type",
+            "text"
+          ],
+          "additionalProperties": false
+        },
+        "element": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "plain_text_input"
+            },
+            "action_id": {
+              "const": "repo_url_input"
+            },
+            "placeholder": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "const": "plain_text"
+                },
+                "text": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 150
+                }
+              },
+              "required": [
+                "type",
+                "text"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "type",
+            "action_id",
+            "placeholder"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "type",
+        "block_id",
+        "label",
+        "element"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

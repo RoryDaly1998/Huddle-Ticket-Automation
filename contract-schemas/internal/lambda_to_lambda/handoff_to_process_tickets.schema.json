@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "HandoffToProcessTickets",
+  "description": "Asynchronous invocation payload sent to process-issues when an OpenAI background response has ended: by issues-generated for the webhook event, or by check-stale-jobs to finish a stale job whose response completed.",
+  "type": "object",
+  "properties": {
+    "response_id": {
+      "description": "The OpenAI response ID (for issues-generated, the webhook event's data.id).",
+      "type": "string",
+      "pattern": "^\\S+$"
+    },
+    "event_type": {
+      "description": "The OpenAI webhook event type for how the response ended; only terminal response events are sent, and check-stale-jobs sends only response.completed.",
+      "enum": [
+        "response.completed",
+        "response.failed",
+        "response.cancelled",
+        "response.incomplete"
+      ]
+    }
+  },
+  "required": [
+    "response_id",
+    "event_type"
+  ],
+  "additionalProperties": false
+}

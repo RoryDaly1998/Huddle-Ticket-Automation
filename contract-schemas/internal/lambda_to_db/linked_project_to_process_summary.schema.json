@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LinkedProjectToProcessSummary",
+  "description": "A row of the DynamoDB channel_project_link table as process-summary reads it: the response to linked_project_to_db_channel_project_link. A channel with no link has no row.",
+  "type": "object",
+  "properties": {
+    "channel_id": {
+      "description": "The table's key: the Slack channel.",
+      "type": "string"
+    },
+    "project_id": {
+      "description": "The linked GitHub Project's node ID.",
+      "type": "string"
+    },
+    "last_summary_at": {
+      "description": "ISO 8601 time in UTC when a summary was last received; absent before the first.",
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "channel_id",
+    "project_id"
+  ]
+}

@@ -1,0 +1,165 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "FileInfoToSlackWebhook",
+  "description": "The response to file_info_to_slack: the file's huddle fields and where it was shared. Read today by process-summary and job-failed. Either a success (ok true) or a failure (ok false). A failed call raises Slack's error code (ratelimited is retried later) and nothing but ok and error is read. Only the fields read are described; every other field is allowed and ignored.",
+  "anyOf": [
+    {
+      "$ref": "#/$defs/success"
+    },
+    {
+      "$ref": "#/$defs/failure"
+    }
+  ],
+  "$defs": {
+    "success": {
+      "type": "object",
+      "description": "A successful response.",
+      "properties": {
+        "ok": {
+          "description": "Whether the call succeeded.",
+          "type": "boolean",
+          "const": true
+        },
+        "file": {
+          "$ref": "#/$defs/file"
+        }
+      },
+      "required": [
+        "ok",
+        "file"
+      ]
+    },
+    "failure": {
+      "type": "object",
+      "description": "A failed response.",
+      "properties": {
+        "ok": {
+          "description": "Whether the call succeeded.",
+          "type": "boolean",
+          "const": false
+        },
+        "error": {
+          "description": "Slack's error code when ok is false, e.g. not_in_channel or ratelimited. A missing or empty code is reported as unknown_error. Never null.",
+          "type": "string",
+          "default": ""
+        }
+      },
+      "required": [
+        "ok"
+      ]
+    },
+    "file": {
+      "description": "The file object fields used to recognise a huddle summary and find its thread.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "description": "The file ID.",
+          "type": "string"
+        },
+        "user": {
+          "description": "Who uploaded the file.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "is_huddle_canvas": {
+          "description": "Whether the file is a huddle canvas; false when missing.",
+          "type": "boolean",
+          "default": false
+        },
+        "huddle_transcript_file_id": {
+          "description": "The huddle's transcript file, which is not a summary.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "canvas_metadata": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "originating_huddle_id": {
+                  "description": "The huddle the canvas came from.",
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "shares": {
+          "description": "The messages sharing the file, in public then private channels; both are empty when missing.",
+          "type": "object",
+          "properties": {
+            "public": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/share"
+                }
+              },
+              "default": {}
+            },
+            "private": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/share"
+                }
+              },
+              "default": {}
+            }
+          },
+          "default": {}
+        }
+      },
+      "required": [
+        "id"
+      ]
+    },
+    "share": {
+      "type": "object",
+      "properties": {
+        "ts": {
+          "description": "The sharing message.",
+          "type": "string"
+        },
+        "thread_ts": {
+          "description": "The thread the sharing message is in, if any.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "ts"
+      ]
+    }
+  }
+}

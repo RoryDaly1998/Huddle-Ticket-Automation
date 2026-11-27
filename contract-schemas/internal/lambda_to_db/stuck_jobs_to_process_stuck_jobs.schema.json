@@ -1,0 +1,131 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "StuckJobsToProcessStuckJobs",
+  "description": "One row of the DynamoDB jobs table as read back: each item the stuck-job Scan returns (check_stuck_jobs_to_db_jobs), read by check-stale-jobs. It describes the whole job record. Status moves received -> generating -> finishing -> completed, or to failed, by job-failed only, from any status but completed; the Scan returns only unfinished jobs. Transcript or summary text is never stored.",
+  "type": "object",
+  "properties": {
+    "job_id": {
+      "description": "Huddle path: the Slack file ID. Manual path: lowercase hex SHA-256 (architecture §6).",
+      "type": "string",
+      "pattern": "^([A-Z][A-Z0-9]+|[0-9a-f]{64})$"
+    },
+    "status": {
+      "enum": [
+        "received",
+        "generating",
+        "finishing",
+        "completed",
+        "failed"
+      ]
+    },
+    "source": {
+      "enum": [
+        "huddle",
+        "manual"
+      ]
+    },
+    "channel_id": {
+      "description": "A Slack ID such as a channel, user or file ID.",
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9]+$"
+    },
+    "thread_ts": {
+      "description": "Where to reply. Optional: the manual path may fall back to channel-level replies.",
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[0-9]+(\\.[0-9]+)?$"
+    },
+    "project_id": {
+      "description": "GitHub Project node ID, copied from the channel's link at claim time.",
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^\\S+$"
+    },
+    "response_id": {
+      "description": "OpenAI background response ID (indexed by a GSI).",
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^\\S+$"
+    },
+    "error": {
+      "description": "Failure reason, if any.",
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "\\S"
+    },
+    "created_at": {
+      "description": "Unix seconds when the job was claimed.",
+      "type": "integer",
+      "minimum": 0
+    },
+    "ttl": {
+      "description": "Unix seconds after which DynamoDB deletes the record.",
+      "type": "integer",
+      "minimum": 0
+    },
+    "claimed_at": {
+      "description": "Unix seconds when the process-summary claim lease started. Absent or null once released. While the job is received, a later claim succeeds only after the lease has expired (90 seconds) or been released.",
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "finishing_started_at": {
+      "description": "Unix seconds when the process-issues lease started. Absent or null once released. While the job is finishing, a later run takes over only after the lease has expired (180 seconds) or been released.",
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    }
+  },
+  "required": [
+    "job_id",
+    "status",
+    "source",
+    "channel_id",
+    "created_at",
+    "ttl"
+  ],
+  "if": {
+    "properties": {
+      "status": {
+        "enum": [
+          "generating",
+          "finishing"
+        ]
+      }
+    },
+    "required": [
+      "status"
+    ]
+  },
+  "then": {
+    "description": "Once a background response exists, the job must know its project and response.",
+    "properties": {
+      "project_id": {
+        "description": "An external ID (GitHub node ID, OpenAI response ID): non-empty, no whitespace.",
+        "type": "string",
+        "pattern": "^\\S+$"
+      },
+      "response_id": {
+        "description": "An external ID (GitHub node ID, OpenAI response ID): non-empty, no whitespace.",
+        "type": "string",
+        "pattern": "^\\S+$"
+      }
+    },
+    "required": [
+      "project_id",
+      "response_id"
+    ]
+  }
+}

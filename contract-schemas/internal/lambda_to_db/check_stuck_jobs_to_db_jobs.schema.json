@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CheckStuckJobsToDbJobs",
+  "description": "The parameters of the Scan of the DynamoDB jobs table that check-stale-jobs makes to find unfinished jobs created before a cutoff: it keeps the rows whose status is one of statuses and whose created_at is less than created_before, and follows every page.",
+  "type": "object",
+  "properties": {
+    "statuses": {
+      "description": "The statuses a job can still move on from.",
+      "type": "array",
+      "items": {
+        "enum": [
+          "received",
+          "generating",
+          "finishing"
+        ]
+      },
+      "minItems": 3,
+      "maxItems": 3,
+      "uniqueItems": true
+    },
+    "created_before": {
+      "description": "Unix seconds; only jobs created before this are returned.",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "statuses",
+    "created_before"
+  ],
+  "additionalProperties": false
+}

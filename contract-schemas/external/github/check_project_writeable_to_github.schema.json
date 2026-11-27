@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CheckProjectWriteableToGithub",
+  "description": "setup-project: look up a user-owned project and whether the bot can write to it. A POST /graphql whose JSON body is this, exactly as sent: the operation text byte for byte, plus its variables (values are never written into the operation text). The token goes in the Authorization header with Accept: application/vnd.github+json and X-GitHub-Api-Version: 2022-11-28.",
+  "type": "object",
+  "properties": {
+    "query": {
+      "const": "\nquery UserProject($login: String!, $number: Int!) {\n  user(login: $login) {\n    projectV2(number: $number) { id viewerCanUpdate }\n  }\n}\n"
+    },
+    "variables": {
+      "type": "object",
+      "properties": {
+        "login": {
+          "description": "The project owner's login, from the project URL.",
+          "type": "string"
+        },
+        "number": {
+          "description": "The project number, from the project URL; at most GraphQL's largest Int.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "login",
+        "number"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "query",
+    "variables"
+  ],
+  "additionalProperties": false
+}

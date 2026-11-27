@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TicketEmbeddingsToDbEmbeddings",
+  "description": "A row of the DynamoDB ticket_embeddings table, as process-issues writes it: a disposable cache of one project item's embedding vector (architecture §6). Partition key project_id, sort key item_id. Holds hashes and vectors derived from ticket text, never the text itself.",
+  "type": "object",
+  "properties": {
+    "project_id": {
+      "description": "GitHub Project node ID.",
+      "type": "string",
+      "pattern": "^\\S+$"
+    },
+    "item_id": {
+      "description": "Project item node ID (PVTI_...).",
+      "type": "string",
+      "pattern": "^\\S+$"
+    },
+    "text_hash": {
+      "description": "Lowercase hex SHA-256 of the item's embed text (architecture §7). A different hash means the title or summary changed, so the row is a cache miss.",
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "embedding": {
+      "description": "The vector as little-endian IEEE 754 float32 values, 4 bytes each, in order. DynamoDB stores the raw bytes as a Binary (B) attribute; JSON carries the same bytes as standard base64 with padding (RFC 4648 §4). The decoded bytes must be exactly 4 * dimensions long: JSON Schema cannot express this, so every implementation checks it.",
+      "type": "string",
+      "contentEncoding": "base64",
+      "pattern": "^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$"
+    },
+    "embedding_model": {
+      "description": "The embedding model the vector was made with, e.g. text-embedding-3-small. A mismatch with the current model is a cache miss.",
+      "type": "string",
+      "pattern": "^\\S+$"
+    },
+    "dimensions": {
+      "description": "How many float32 values the vector has. A mismatch with the current setting is a cache miss.",
+      "type": "integer",
+      "minimum": 1
+    },
+    "ttl": {
+      "description": "Unix seconds after which DynamoDB deletes the row. Set 180 days ahead on write, and pushed back to 180 days ahead when a run finds less than 90 days left.",
+      "type": "integer",
+      "minimum": 0
+    }
+  },
+  "required": [
+    "project_id",
+    "item_id",
+    "text_hash",
+    "embedding",
+    "embedding_model",
+    "dimensions",
+    "ttl"
+  ],
+  "additionalProperties": false
+}

@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AddTicketsToGithub",
+  "description": "process-issues: add a run's tickets to a project as draft issues in one request. For n drafts (at least one) the operation declares $projectId: ID!, then $title<i>: String! and $body<i>: String! for each i from 0 to n-1 in ticket order, and holds one addProjectV2DraftIssue field per i, aliased draft<i> and using that pair of variables, each field on its own lines as `draft_field` in the GitHub client lays it out. The pattern fixes the shape of the text, so titles and bodies appear only as variable references; it cannot check that the indexes agree with each other and with the variables sent. Not idempotent, and not a transaction: some drafts may be created even if the request fails. A POST /graphql whose JSON body is this, exactly as sent: the operation text byte for byte, plus its variables (values are never written into the operation text). The token goes in the Authorization header with Accept: application/vnd.github+json and X-GitHub-Api-Version: 2022-11-28.",
+  "type": "object",
+  "properties": {
+    "query": {
+      "type": "string",
+      "pattern": "^\nmutation AddDraftIssues\\(\\$projectId: ID!(, \\$title(0|[1-9][0-9]*): String!, \\$body(0|[1-9][0-9]*): String!)+\\) \\{\n(  draft(0|[1-9][0-9]*): addProjectV2DraftIssue\\(input: \\{projectId: \\$projectId, title: \\$title(0|[1-9][0-9]*), body: \\$body(0|[1-9][0-9]*)\\}\\) \\{\n    projectItem \\{ id \\}\n  \\}\n)+\\}\n$"
+    },
+    "variables": {
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "description": "The project's node ID.",
+          "type": "string"
+        },
+        "title0": {
+          "type": "string"
+        },
+        "body0": {
+          "type": "string"
+        }
+      },
+      "patternProperties": {
+        "^title(0|[1-9][0-9]*)$": {
+          "description": "A ticket's title.",
+          "type": "string"
+        },
+        "^body(0|[1-9][0-9]*)$": {
+          "description": "A ticket's markdown body.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "projectId",
+        "title0",
+        "body0"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "query",
+    "variables"
+  ],
+  "additionalProperties": false
+}

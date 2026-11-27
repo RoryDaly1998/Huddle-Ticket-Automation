@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LinkedProjectToDbChannelProjectLink",
+  "description": "What process-summary sends to the DynamoDB channel_project_link table about a channel's linked project. It first reads the link with a consistent GetItem on the key channel_id alone; if the channel has one, it then records when the summary arrived with a conditional UpdateItem that sets only last_summary_at, so project_id is never overwritten.",
+  "type": "object",
+  "properties": {
+    "channel_id": {
+      "description": "The table's key: the Slack channel.",
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9]+$"
+    },
+    "last_summary_at": {
+      "description": "ISO 8601 time in UTC when a summary was last received; sent only by the update.",
+      "type": "string"
+    }
+  },
+  "required": [
+    "channel_id"
+  ],
+  "additionalProperties": false
+}

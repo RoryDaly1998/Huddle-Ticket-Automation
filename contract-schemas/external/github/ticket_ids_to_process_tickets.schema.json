@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TicketIdsToProcessTickets",
+  "description": "The response to add_tickets_to_github: data holds one result per alias in the operation (draft0, draft1, ...), each with its new draft's item ID. The client returns the IDs in alias index order, whatever order the keys arrive in, and treats a requested alias that is missing as an invalid_response; the schema cannot know how many were requested. Any errors entry fails the whole call, even if some drafts were created. Every 2xx GraphQL response is first read for its data and errors. If errors holds any entry the call fails (retryably if any entry's type is RATE_LIMITED, else permanently, coded by the first entry's type). Otherwise data is read as described here; a response that does not match is a permanent invalid_response failure. Only the fields read are described; every other field is allowed and ignored.",
+  "anyOf": [
+    {
+      "$ref": "#/$defs/success"
+    },
+    {
+      "$ref": "#/$defs/failure"
+    }
+  ],
+  "$defs": {
+    "success": {
+      "type": "object",
+      "description": "A response whose data is read.",
+      "properties": {
+        "data": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "$ref": "#/$defs/draft_issue_payload"
+          }
+        },
+        "errors": {
+          "description": "Errors; missing means none. Their message is never read, since it can echo request content.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/graphql_error"
+          },
+          "default": []
+        }
+      },
+      "required": [
+        "data"
+      ]
+    },
+    "failure": {
+      "type": "object",
+      "description": "A response with errors, whose data may be missing, null or partial.",
+      "properties": {
+        "data": {
+          "description": "Not read.",
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "errors": {
+          "description": "Errors; missing means none. Their message is never read, since it can echo request content.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/graphql_error"
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "errors"
+      ]
+    },
+    "graphql_error": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "description": "GitHub's machine-readable error type, e.g. NOT_FOUND or RATE_LIMITED.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "path": {
+          "description": "Where in data the error happened.",
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": [
+                  "string",
+                  "integer"
+                ]
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "draft_issue_payload": {
+      "description": "The result of one addProjectV2DraftIssue field in a batch.",
+      "type": "object",
+      "properties": {
+        "projectItem": {
+          "$ref": "#/$defs/node_id"
+        }
+      },
+      "required": [
+        "projectItem"
+      ]
+    },
+    "node_id": {
+      "description": "Any GraphQL object, read only for its node ID.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ]
+    }
+  }
+}

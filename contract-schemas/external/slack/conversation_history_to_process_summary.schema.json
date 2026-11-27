@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ConversationHistoryToProcessSummary",
+  "description": "One page of the response to conversation_history_to_slack, newest message first. Either a success (ok true) or a failure (ok false). A failed call raises Slack's error code (ratelimited is retried later) and nothing but ok and error is read. Only the fields read are described; every other field is allowed and ignored.",
+  "anyOf": [
+    {
+      "$ref": "#/$defs/success"
+    },
+    {
+      "$ref": "#/$defs/failure"
+    }
+  ],
+  "$defs": {
+    "success": {
+      "type": "object",
+      "description": "A successful response.",
+      "properties": {
+        "ok": {
+          "description": "Whether the call succeeded.",
+          "type": "boolean",
+          "const": true
+        },
+        "messages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/message"
+          }
+        },
+        "response_metadata": {
+          "type": "object",
+          "properties": {
+            "next_cursor": {
+              "description": "The cursor of the next page; empty or missing on the last page.",
+              "type": "string",
+              "default": ""
+            }
+          },
+          "default": {}
+        }
+      },
+      "required": [
+        "ok",
+        "messages"
+      ]
+    },
+    "failure": {
+      "type": "object",
+      "description": "A failed response.",
+      "properties": {
+        "ok": {
+          "description": "Whether the call succeeded.",
+          "type": "boolean",
+          "const": false
+        },
+        "error": {
+          "description": "Slack's error code when ok is false, e.g. not_in_channel or ratelimited. A missing or empty code is reported as unknown_error. Never null.",
+          "type": "string",
+          "default": ""
+        }
+      },
+      "required": [
+        "ok"
+      ]
+    },
+    "message": {
+      "type": "object",
+      "properties": {
+        "ts": {
+          "description": "The message.",
+          "type": "string"
+        },
+        "text": {
+          "description": "The message text; empty when missing.",
+          "type": "string",
+          "default": ""
+        },
+        "thread_ts": {
+          "description": "The thread the message is in, if any.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "ts"
+      ]
+    }
+  }
+}

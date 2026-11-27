@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AutomaticSummaryToSlackWebhook",
+  "description": "An Events API event_callback body carrying a file_shared event, as summary-posted reads it from an application/json request after the signature check over the raw body. Only a file shared by Slackbot (user_id USLACKBOT) starts a job; process-summary then checks with files.info that it is a huddle summary. A body of another type, or with another event, is answered with an empty 200 and ignored, and is not described here. Only the fields read are described; every other field is allowed and ignored.",
+  "type": "object",
+  "properties": {
+    "type": {
+      "type": "string",
+      "const": "event_callback"
+    },
+    "event": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "file_shared"
+        },
+        "channel_id": {
+          "description": "The channel the file was shared in.",
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9]+$"
+        },
+        "file_id": {
+          "description": "The shared file; also the huddle job ID.",
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9]+$"
+        },
+        "user_id": {
+          "description": "Who shared the file.",
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9]+$"
+        },
+        "event_ts": {
+          "description": "When the event happened, as a Slack timestamp.",
+          "type": "string",
+          "pattern": "^[0-9]+(\\.[0-9]+)?$"
+        }
+      },
+      "required": [
+        "type",
+        "channel_id",
+        "file_id",
+        "user_id",
+        "event_ts"
+      ]
+    }
+  },
+  "required": [
+    "type",
+    "event"
+  ]
+}

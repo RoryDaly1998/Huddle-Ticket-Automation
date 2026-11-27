@@ -126,7 +126,6 @@ convention = "pep257"
     "SLF001",   # every method, private ones included, has its own unit tests
 ]
 "scripts/**" = [
-    "E402",    # scripts put src/ on sys.path before importing python_common
     "INP001",  # scripts/ is a folder of dev tools, not a package
     "T201",    # dev tools may print
 ]

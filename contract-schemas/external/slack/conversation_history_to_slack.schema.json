@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ConversationHistoryToSlack",
+  "description": "The query parameters of the Slack Web API call conversations.history (a GET), exactly as sent, written as an object of strings: one page of messages newer than oldest. Later pages repeat the first page's parameters and add the previous page's next_cursor as cursor. The bot token goes in the Authorization header.",
+  "type": "object",
+  "properties": {
+    "channel": {
+      "description": "The channel to read.",
+      "type": "string"
+    },
+    "oldest": {
+      "description": "Only messages after this Slack timestamp.",
+      "type": "string"
+    },
+    "limit": {
+      "description": "The page size.",
+      "const": "200"
+    },
+    "cursor": {
+      "description": "The previous page's next_cursor; left out for the first page.",
+      "type": "string"
+    }
+  },
+  "required": [
+    "channel",
+    "oldest",
+    "limit"
+  ],
+  "additionalProperties": false
+}

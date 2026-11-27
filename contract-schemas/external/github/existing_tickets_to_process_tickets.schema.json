@@ -1,0 +1,241 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ExistingTicketsToProcessTickets",
+  "description": "The response to existing_tickets_to_github: one page of a project's items. A null node, or a node that is not a project (no items), means the project does not exist. Errors whose path is node.items.nodes.<n>.content... are tolerated, and the partial data is read. Every 2xx GraphQL response is first read for its data and errors. If errors holds any entry the call fails (retryably if any entry's type is RATE_LIMITED, else permanently, coded by the first entry's type). Otherwise data is read as described here; a response that does not match is a permanent invalid_response failure. Only the fields read are described; every other field is allowed and ignored.",
+  "anyOf": [
+    {
+      "$ref": "#/$defs/success"
+    },
+    {
+      "$ref": "#/$defs/failure"
+    }
+  ],
+  "$defs": {
+    "success": {
+      "type": "object",
+      "description": "A response whose data is read.",
+      "properties": {
+        "data": {
+          "type": "object",
+          "properties": {
+            "node": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "anyOf": [
+                        {
+                          "$ref": "#/$defs/items_page"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "errors": {
+          "description": "Errors; missing means none. Their message is never read, since it can echo request content.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/graphql_error"
+          },
+          "default": []
+        }
+      },
+      "required": [
+        "data"
+      ]
+    },
+    "failure": {
+      "type": "object",
+      "description": "A response with errors, whose data may be missing, null or partial.",
+      "properties": {
+        "data": {
+          "description": "Not read.",
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "errors": {
+          "description": "Errors; missing means none. Their message is never read, since it can echo request content.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/graphql_error"
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "errors"
+      ]
+    },
+    "graphql_error": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "description": "GitHub's machine-readable error type, e.g. NOT_FOUND or RATE_LIMITED.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "path": {
+          "description": "Where in data the error happened.",
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": [
+                  "string",
+                  "integer"
+                ]
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "items_page": {
+      "type": "object",
+      "properties": {
+        "pageInfo": {
+          "type": "object",
+          "properties": {
+            "hasNextPage": {
+              "type": "boolean"
+            },
+            "endCursor": {
+              "description": "The cursor of the next page; a page with a next page but no cursor is an invalid_response.",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "hasNextPage"
+          ]
+        },
+        "nodes": {
+          "description": "The items; null entries are skipped.",
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/item"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "required": [
+        "pageInfo",
+        "nodes"
+      ]
+    },
+    "item": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "description": "The item's node ID.",
+          "type": "string"
+        },
+        "content": {
+          "description": "What the item is; null when the bot cannot see it, and the item is then skipped. Only an Issue or a DraftIssue is read: any other type (a PullRequest, or a type GitHub adds later) is skipped.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/item_content"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id"
+      ]
+    },
+    "item_content": {
+      "type": "object",
+      "properties": {
+        "__typename": {
+          "description": "The content type, any string; only Issue and DraftIssue are read.",
+          "type": "string"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "body": {
+          "description": "Markdown; empty when missing or null.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "__typename"
+      ],
+      "if": {
+        "properties": {
+          "__typename": {
+            "enum": [
+              "DraftIssue",
+              "Issue"
+            ]
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "title"
+        ],
+        "properties": {
+          "title": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

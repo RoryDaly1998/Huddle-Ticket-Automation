@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SetupCommandToSlackWebhook",
+  "description": "A slash command posted to project-added, decoded from its form body (application/x-www-form-urlencoded; if a key repeats, its last value wins) after the signature check over the raw body. /setup opens the setup modal with views.open; any other command gets a private reply. Only the fields read are described; every other field is allowed and ignored.",
+  "type": "object",
+  "properties": {
+    "command": {
+      "description": "The command, e.g. /setup.",
+      "type": "string"
+    },
+    "channel_id": {
+      "description": "The channel /setup was run in; carried through the modal's private_metadata.",
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9]+$"
+    },
+    "trigger_id": {
+      "description": "Lets views.open show a modal, within 3 seconds of the command.",
+      "type": "string"
+    }
+  },
+  "required": [
+    "command",
+    "channel_id",
+    "trigger_id"
+  ]
+}

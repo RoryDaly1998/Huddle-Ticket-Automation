@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ExistingTicketsToGithub",
+  "description": "process-issues: one page of a project's unarchived items with each item's title and body. The first page sends a null cursor; later pages send the previous page's endCursor. A POST /graphql whose JSON body is this, exactly as sent: the operation text byte for byte, plus its variables (values are never written into the operation text). The token goes in the Authorization header with Accept: application/vnd.github+json and X-GitHub-Api-Version: 2022-11-28.",
+  "type": "object",
+  "properties": {
+    "query": {
+      "const": "\nquery ListItems($projectId: ID!, $first: Int!, $cursor: String) {\n  node(id: $projectId) {\n    ... on ProjectV2 {\n      items(first: $first, after: $cursor, archivedStates: [NOT_ARCHIVED]) {\n        pageInfo { hasNextPage endCursor }\n        nodes {\n          id\n          content {\n            __typename\n            ... on DraftIssue { title body }\n            ... on Issue { title body }\n            ... on PullRequest { title }\n          }\n        }\n      }\n    }\n  }\n}\n"
+    },
+    "variables": {
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "description": "The project's node ID.",
+          "type": "string"
+        },
+        "first": {
+          "description": "The page size.",
+          "const": 100
+        },
+        "cursor": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "projectId",
+        "first",
+        "cursor"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "query",
+    "variables"
+  ],
+  "additionalProperties": false
+}

@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ReceiptIdToProcessSummary",
+  "description": "The response to summary_to_ticket_generator: the new background response, read only for its ID. Only the fields process-summary reads are described; every other field is allowed and ignored.",
+  "type": "object",
+  "properties": {
+    "id": {
+      "description": "The background response's ID.",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id"
+  ]
+}

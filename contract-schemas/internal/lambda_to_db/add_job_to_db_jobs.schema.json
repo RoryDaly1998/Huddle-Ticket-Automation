@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AddJobToDbJobs",
+  "description": "The item process-summary writes to the DynamoDB jobs table to claim a job (a conditional PutItem): a new received job holding its claim lease. Absent values are left out, never written as null. Transcript or summary text is never stored.",
+  "type": "object",
+  "properties": {
+    "job_id": {
+      "description": "Huddle path: the Slack file ID. Manual path: lowercase hex SHA-256 (architecture §6).",
+      "type": "string",
+      "pattern": "^([A-Z][A-Z0-9]+|[0-9a-f]{64})$"
+    },
+    "status": {
+      "const": "received"
+    },
+    "source": {
+      "enum": [
+        "huddle",
+        "manual"
+      ]
+    },
+    "channel_id": {
+      "description": "A Slack ID such as a channel, user or file ID.",
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9]+$"
+    },
+    "project_id": {
+      "description": "GitHub Project node ID, if known at claim time.",
+      "type": "string",
+      "pattern": "^\\S+$"
+    },
+    "created_at": {
+      "description": "Unix seconds when the job was claimed.",
+      "type": "integer",
+      "minimum": 0
+    },
+    "ttl": {
+      "description": "Unix seconds after which DynamoDB deletes the record.",
+      "type": "integer",
+      "minimum": 0
+    },
+    "claimed_at": {
+      "description": "Unix seconds when the process-summary claim lease started.",
+      "type": "integer",
+      "minimum": 0
+    }
+  },
+  "required": [
+    "job_id",
+    "status",
+    "source",
+    "channel_id",
+    "created_at",
+    "ttl",
+    "claimed_at"
+  ],
+  "additionalProperties": false
+}

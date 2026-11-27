@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ConfirmReceiptToSlackWebhook",
+  "description": "The response to setup_form_to_slack (views.open): nothing beyond whether it succeeded is read. When ok is false the call fails with Slack's error code (ratelimited is retried later). Every other field is allowed and ignored.",
+  "type": "object",
+  "properties": {
+    "ok": {
+      "description": "Whether the call succeeded.",
+      "type": "boolean"
+    },
+    "error": {
+      "description": "Slack's error code when ok is false, e.g. not_in_channel or ratelimited. A missing or empty code is reported as unknown_error. Never null.",
+      "type": "string",
+      "default": ""
+    }
+  },
+  "required": [
+    "ok"
+  ]
+}

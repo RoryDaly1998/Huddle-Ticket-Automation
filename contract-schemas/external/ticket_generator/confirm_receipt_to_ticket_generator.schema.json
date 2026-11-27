@@ -1,0 +1,7 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ConfirmReceiptToTicketGenerator",
+  "description": "The empty body of the HTTP 200 issues-generated answers a webhook delivery with, once process-issues has accepted it or because the event is ignored.",
+  "type": "string",
+  "const": ""
+}

@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CanvasContentToProcessSummary",
+  "description": "The response to canvas_content_to_slack. The content is the meeting summary and is never logged or stored. Either a success (ok true) or a failure (ok false). A failed call raises Slack's error code (ratelimited is retried later) and nothing but ok and error is read. Only the fields read are described; every other field is allowed and ignored.",
+  "anyOf": [
+    {
+      "$ref": "#/$defs/success"
+    },
+    {
+      "$ref": "#/$defs/failure"
+    }
+  ],
+  "$defs": {
+    "success": {
+      "type": "object",
+      "description": "A successful response.",
+      "properties": {
+        "ok": {
+          "description": "Whether the call succeeded.",
+          "type": "boolean",
+          "const": true
+        },
+        "content": {
+          "description": "The canvas as markdown; may be empty.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "ok",
+        "content"
+      ]
+    },
+    "failure": {
+      "type": "object",
+      "description": "A failed response.",
+      "properties": {
+        "ok": {
+          "description": "Whether the call succeeded.",
+          "type": "boolean",
+          "const": false
+        },
+        "error": {
+          "description": "Slack's error code when ok is false, e.g. not_in_channel or ratelimited. A missing or empty code is reported as unknown_error. Never null.",
+          "type": "string",
+          "default": ""
+        }
+      },
+      "required": [
+        "ok"
+      ]
+    }
+  }
+}

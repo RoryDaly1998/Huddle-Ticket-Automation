@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TicketsToDuplicateJudge",
+  "description": "Body of POST /v1/decisions (OpenAI Decisions API) as sent by the duplicate judge: the new ticket is the input, and each candidate ticket is one predicate question named by the candidate's ID so answers can be correlated.",
+  "type": "object",
+  "properties": {
+    "model": {
+      "description": "Decisions model name (from SSM).",
+      "type": "string",
+      "pattern": "^\\S+$"
+    },
+    "input": {
+      "description": "The new ticket being judged.",
+      "type": "string",
+      "pattern": "\\S",
+      "maxLength": 10485760
+    },
+    "questions": {
+      "description": "One predicate per candidate ticket, answered in order.",
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 400,
+      "items": {
+        "$ref": "#/$defs/predicate_question"
+      }
+    }
+  },
+  "required": [
+    "model",
+    "input",
+    "questions"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "predicate_question": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "predicate"
+        },
+        "name": {
+          "description": "The candidate ticket's ID, echoed back on the answer.",
+          "type": "string",
+          "pattern": "^\\S+$"
+        },
+        "instructions": {
+          "description": "The statement to judge, containing the candidate ticket.",
+          "type": "string",
+          "pattern": "\\S"
+        }
+      },
+      "required": [
+        "type",
+        "name",
+        "instructions"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

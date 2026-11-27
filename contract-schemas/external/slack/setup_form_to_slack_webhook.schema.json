@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SetupFormToSlackWebhook",
+  "description": "The setup modal's submission (see setup_form_to_slack), posted to project-added as a form body (application/x-www-form-urlencoded) with a payload field, described decoded: the payload value is JSON text and is described as the JSON value it holds. It is read after the signature check over the raw body. Only a view_submission whose view.callback_id is setup_project is handled; any other interactive payload is answered with an empty 200 and ignored, and is not described here. Only the fields read are described; every other field is allowed and ignored.",
+  "type": "object",
+  "properties": {
+    "payload": {
+      "type": "object",
+      "description": "The decoded payload JSON.",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "view_submission"
+        },
+        "user": {
+          "type": "object",
+          "description": "Who submitted the modal.",
+          "properties": {
+            "id": {
+              "description": "The user's ID.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ]
+        },
+        "view": {
+          "type": "object",
+          "properties": {
+            "callback_id": {
+              "description": "The callback_id the view was opened with.",
+              "type": "string",
+              "const": "setup_project"
+            },
+            "private_metadata": {
+              "description": "JSON text {\"channel_id\": ...} as sent in the modal; project-added parses it and answers 400 if it is not.",
+              "type": "string",
+              "contentMediaType": "application/json",
+              "contentSchema": {
+                "$ref": "#/$defs/setup_metadata"
+              }
+            },
+            "state": {
+              "type": "object",
+              "properties": {
+                "values": {
+                  "description": "Submitted input values, keyed by block ID (project_url, repo_url) and then by action ID (project_url_input, repo_url_input). A missing input counts as empty.",
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "$ref": "#/$defs/input_value"
+                    }
+                  }
+                }
+              },
+              "required": [
+                "values"
+              ]
+            }
+          },
+          "required": [
+            "callback_id",
+            "private_metadata",
+            "state"
+          ]
+        }
+      },
+      "required": [
+        "type",
+        "user",
+        "view"
+      ]
+    }
+  },
+  "required": [
+    "payload"
+  ],
+  "$defs": {
+    "setup_metadata": {
+      "type": "object",
+      "description": "What private_metadata holds, as project-added sent it.",
+      "properties": {
+        "channel_id": {
+          "description": "The channel /setup was run in.",
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9]+$"
+        }
+      },
+      "required": [
+        "channel_id"
+      ],
+      "additionalProperties": false
+    },
+    "input_value": {
+      "description": "A plain-text input's state. A missing or null value counts as empty.",
+      "type": "object",
+      "properties": {
+        "value": {
+          "description": "The text the user entered.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      }
+    }
+  }
+}

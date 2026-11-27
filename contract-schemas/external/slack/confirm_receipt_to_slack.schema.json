@@ -1,0 +1,7 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ConfirmReceiptToSlack",
+  "description": "The empty body of an HTTP 200 that acknowledges a Slack request with nothing to say: an event, a /setup command whose modal opened, and a modal submission that closes the modal.",
+  "type": "string",
+  "const": ""
+}

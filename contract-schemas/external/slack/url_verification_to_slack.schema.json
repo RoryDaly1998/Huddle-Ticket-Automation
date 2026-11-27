@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "UrlVerificationToSlack",
+  "description": "summary-posted's answer to Slack's Events URL handshake (HTTP 200, application/json), exactly as sent: the challenge, echoed.",
+  "type": "object",
+  "properties": {
+    "challenge": {
+      "description": "The challenge from the handshake request, unchanged.",
+      "type": "string"
+    }
+  },
+  "required": [
+    "challenge"
+  ],
+  "additionalProperties": false
+}

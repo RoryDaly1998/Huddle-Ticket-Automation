@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CompletionNoticeToTicketGeneratorWebhook",
+  "description": "An OpenAI webhook event body, as read by issues-generated after the Standard Webhooks signature check over the raw body. Only the four terminal response events (response.completed, response.failed, response.cancelled, response.incomplete) start work, and only they need data.id, which must not hold whitespace; any other event type is acknowledged and ignored without reading data. Only the fields issues-generated reads are described; every other field is allowed and ignored.",
+  "type": "object",
+  "properties": {
+    "type": {
+      "description": "The event type, e.g. response.completed.",
+      "type": "string"
+    },
+    "data": {
+      "description": "What the event is about; read only for a terminal response event, which needs an object holding the response's id."
+    }
+  },
+  "required": [
+    "type"
+  ],
+  "if": {
+    "properties": {
+      "type": {
+        "enum": [
+          "response.completed",
+          "response.failed",
+          "response.cancelled",
+          "response.incomplete"
+        ]
+      }
+    },
+    "required": [
+      "type"
+    ]
+  },
+  "then": {
+    "properties": {
+      "data": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "description": "The ID of the background response that finished.",
+            "type": "string",
+            "pattern": "^\\S+$"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    "required": [
+      "data"
+    ]
+  }
+}

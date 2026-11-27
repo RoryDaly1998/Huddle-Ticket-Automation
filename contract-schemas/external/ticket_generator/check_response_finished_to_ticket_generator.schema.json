@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CheckResponseFinishedToTicketGenerator",
+  "description": "The path parameter of GET /v1/responses/{response_id}, the request check-stale-jobs sends to see whether a stale job's background response has ended. The request has no body. The response is finished_responses_to_process_stuck_jobs.",
+  "type": "object",
+  "properties": {
+    "response_id": {
+      "description": "The background response's ID.",
+      "type": "string",
+      "pattern": "^\\S+$"
+    }
+  },
+  "required": [
+    "response_id"
+  ],
+  "additionalProperties": false
+}

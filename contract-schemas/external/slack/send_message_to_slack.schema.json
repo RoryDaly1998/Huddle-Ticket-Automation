@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SendMessageToSlack",
+  "description": "The JSON body of the Slack Web API call chat.postMessage (a POST), exactly as sent: a plain-text message, as a thread reply when thread_ts is given. The bot token goes in the Authorization header.",
+  "type": "object",
+  "properties": {
+    "channel": {
+      "description": "The channel to post in.",
+      "type": "string"
+    },
+    "text": {
+      "description": "The message.",
+      "type": "string"
+    },
+    "thread_ts": {
+      "description": "The thread to reply in; left out for a channel-level message, never empty.",
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "required": [
+    "channel",
+    "text"
+  ],
+  "additionalProperties": false
+}
